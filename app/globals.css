@@ -1,26 +1,81 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Brand — derived from the ISMAYA logo green (#3C6046) */
+  --color-brand-50: #f1f5f2;
+  --color-brand-100: #e1eae3;
+  --color-brand-200: #c3d5c8;
+  --color-brand-300: #9db9a5;
+  --color-brand-400: #6f9579;
+  --color-brand-500: #4e7657;
+  --color-brand-600: #3c6046;
+  --color-brand-700: #324f3b;
+  --color-brand-800: #2a4031;
+  --color-brand-900: #233529;
+
+  /* Neutral structure (warm, agricultural, not stark white) */
+  --color-canvas: #f6f5f2;
+  --color-surface: #ffffff;
+  --color-panel: #fbfaf8;
+  --color-border: #e7e5e1;
+  --color-border-strong: #d8d5cf;
+
+  /* Text */
+  --color-ink: #1f2421;
+  --color-muted: #62675f;
+  --color-subtle: #8a8f88;
+
+  /* Status */
+  --color-success: #2f7d4f;
+  --color-success-soft: #e9f3ec;
+  --color-warning: #a96a12;
+  --color-warning-soft: #faf1e0;
+  --color-danger: #b4483c;
+  --color-danger-soft: #f9ece9;
+  --color-info: #3b6e9b;
+  --color-info-soft: #ecf2f8;
+
+  /* Radii — small/moderate, enterprise */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family:
+      var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-brand-600) 22%, white);
+    color: var(--color-brand-900);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
 }
