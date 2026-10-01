@@ -3,6 +3,7 @@ import { cn } from "@/lib/cn";
 interface PageHeaderProps {
   title: string;
   description?: string;
+  badge?: React.ReactNode;
   actions?: React.ReactNode;
   className?: string;
 }
@@ -10,6 +11,7 @@ interface PageHeaderProps {
 export function PageHeader({
   title,
   description,
+  badge,
   actions,
   className,
 }: PageHeaderProps) {
@@ -21,9 +23,12 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-lg font-semibold tracking-tight text-ink">
-          {title}
-        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-lg font-semibold tracking-tight text-ink">
+            {title}
+          </h1>
+          {badge}
+        </div>
         {description ? (
           <p className="mt-0.5 text-sm text-muted">{description}</p>
         ) : null}

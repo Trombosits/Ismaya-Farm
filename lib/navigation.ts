@@ -55,9 +55,9 @@ export const navigation: NavGroup[] = [
     items: [
       {
         label: "Data Ternak",
-        href: "/data-ternak",
+        href: "/livestock",
         icon: PawPrint,
-        status: "coming-soon",
+        status: "available",
       },
       {
         label: "Jenis Ternak",
@@ -78,9 +78,9 @@ export const navigation: NavGroup[] = [
     items: [
       {
         label: "Riwayat Kesehatan",
-        href: "/riwayat-kesehatan",
+        href: "/health",
         icon: HeartPulse,
-        status: "coming-soon",
+        status: "available",
       },
     ],
   },

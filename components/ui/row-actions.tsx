@@ -1,13 +1,15 @@
 "use client";
 
-import { Ellipsis, Pencil, Trash } from "lucide-react";
+import { Ellipsis, Eye, Pencil, Trash } from "lucide-react";
 
 import { DropdownItem, DropdownMenu, DropdownSeparator } from "./dropdown";
 
 interface RowActionsProps {
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onView?: () => void;
   label?: string;
+  viewLabel?: string;
   editLabel?: string;
   deleteLabel?: string;
 }
@@ -15,7 +17,9 @@ interface RowActionsProps {
 export function RowActions({
   onEdit,
   onDelete,
+  onView,
   label = "Aksi baris",
+  viewLabel = "Lihat Detail",
   editLabel = "Edit",
   deleteLabel = "Hapus",
 }: RowActionsProps) {
@@ -33,17 +37,28 @@ export function RowActions({
         </button>
       }
     >
-      <DropdownItem icon={<Pencil className="size-3.5" />} onClick={onEdit}>
-        {editLabel}
-      </DropdownItem>
-      <DropdownSeparator />
-      <DropdownItem
-        icon={<Trash className="size-3.5" />}
-        onClick={onDelete}
-        className="text-danger hover:bg-danger-soft"
-      >
-        {deleteLabel}
-      </DropdownItem>
+      {onView ? (
+        <DropdownItem icon={<Eye className="size-3.5" />} onClick={onView}>
+          {viewLabel}
+        </DropdownItem>
+      ) : null}
+      {onEdit ? (
+        <DropdownItem icon={<Pencil className="size-3.5" />} onClick={onEdit}>
+          {editLabel}
+        </DropdownItem>
+      ) : null}
+      {onDelete ? (
+        <>
+          <DropdownSeparator />
+          <DropdownItem
+            icon={<Trash className="size-3.5" />}
+            onClick={onDelete}
+            className="text-danger hover:bg-danger-soft"
+          >
+            {deleteLabel}
+          </DropdownItem>
+        </>
+      ) : null}
     </DropdownMenu>
   );
 }
