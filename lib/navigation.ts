@@ -89,15 +89,15 @@ export const navigation: NavGroup[] = [
     items: [
       {
         label: "Perkawinan",
-        href: "/perkawinan",
+        href: "/livestock/reproduction",
         icon: HeartHandshake,
-        status: "coming-soon",
+        status: "available",
       },
       {
         label: "Kelahiran",
-        href: "/kelahiran",
+        href: "/livestock/births",
         icon: Baby,
-        status: "coming-soon",
+        status: "available",
       },
     ],
   },
@@ -106,21 +106,21 @@ export const navigation: NavGroup[] = [
     items: [
       {
         label: "Jenis Pakan",
-        href: "/jenis-pakan",
+        href: "/feed/types",
         icon: Wheat,
-        status: "coming-soon",
+        status: "available",
       },
       {
         label: "Pembelian Pakan",
-        href: "/pembelian-pakan",
+        href: "/feed/purchases",
         icon: ShoppingCart,
-        status: "coming-soon",
+        status: "available",
       },
       {
         label: "Stok Pakan",
-        href: "/stok-pakan",
+        href: "/feed/inventory",
         icon: Boxes,
-        status: "coming-soon",
+        status: "available",
       },
     ],
   },
@@ -129,15 +129,15 @@ export const navigation: NavGroup[] = [
     items: [
       {
         label: "Pengumpulan Telur",
-        href: "/pengumpulan-telur",
+        href: "/hatchery/egg-collection",
         icon: Egg,
-        status: "coming-soon",
+        status: "available",
       },
       {
         label: "Batch Penetasan",
-        href: "/batch-penetasan",
+        href: "/hatchery/batches",
         icon: Thermometer,
-        status: "coming-soon",
+        status: "available",
       },
     ],
   },

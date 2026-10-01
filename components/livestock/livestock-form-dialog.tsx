@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,23 +29,6 @@ interface LivestockFormDialogProps {
   onClose: () => void;
   mode: "create" | "edit";
   livestock?: Livestock | null;
-}
-
-function FormSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <fieldset className="flex min-w-0 flex-col gap-3">
-      <legend className="text-[11px] font-semibold tracking-wider text-subtle uppercase">
-        {title}
-      </legend>
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
-    </fieldset>
-  );
 }
 
 export function LivestockFormDialog({

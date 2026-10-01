@@ -3,8 +3,9 @@
 import { Check, SlidersHorizontal } from "lucide-react";
 
 import { DropdownItem, DropdownMenu } from "@/components/ui/dropdown";
+import type { TableViewState } from "@/lib/view-state";
 
-export type TableViewState = "data" | "loading" | "empty" | "error";
+export type { TableViewState };
 
 const OPTIONS: { value: TableViewState; label: string }[] = [
   { value: "data", label: "Data" },
