@@ -30,21 +30,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-surface/95 px-3 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-brand-900 px-3 backdrop-blur lg:hidden">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-label="Buka navigasi"
           aria-expanded={mobileOpen}
           aria-controls="app-sidebar"
-          className="grid size-9 place-items-center rounded-md text-muted transition-colors hover:bg-canvas hover:text-ink"
+          className="grid size-9 place-items-center rounded-md text-white transition-colors hover:bg-canvas hover:text-ink"
         >
           <Menu className="size-5" />
         </button>
         <div className="flex items-center gap-2">
           <Logo showWordmark={false} />
-          <span className="text-sm font-semibold tracking-tight text-ink">
-            ISMAYA
+          <span className="text-sm tracking-tight text-white">
+            Ismaya Farm Bandung
           </span>
         </div>
       </header>

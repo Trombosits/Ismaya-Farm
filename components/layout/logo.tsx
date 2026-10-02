@@ -1,6 +1,5 @@
-import { Sprout } from "lucide-react";
-
 import { cn } from "@/lib/cn";
+import Image from "next/image";
 
 interface LogoProps {
   className?: string;
@@ -10,18 +9,21 @@ interface LogoProps {
 export function Logo({ className, showWordmark = true }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <span
-        aria-hidden
-        className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-600 text-white"
-      >
-        <Sprout className="size-4" strokeWidth={2.25} />
-      </span>
+      <div className="relative size-9 shrink-0 overflow-hidden rounded-full">
+        <Image
+          src="/images/ismaya-farm-logo-hi.png"
+          alt="Ismaya Farm Logo"
+          fill
+          className="object-contain"
+          priority
+        />
+      </div>
       {showWordmark ? (
         <span className="flex min-w-0 flex-col leading-none">
-          <span className="text-sm font-semibold tracking-tight text-ink">
-            ISMAYA
+          <span className="text-sm font-semibold tracking-tight text-ink text-white">
+            Ismaya Farm Bandung
           </span>
-          <span className="mt-0.5 truncate text-[11px] text-subtle">
+          <span className="mt-0.5 truncate text-[11px] text-subtle-dark">
             Manajemen Peternakan
           </span>
         </span>
