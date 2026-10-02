@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "ISMAYA — Manajemen Peternakan",
+    default: "ISMAYA FARM",
     template: "%s · ISMAYA",
   },
   description:
