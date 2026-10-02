@@ -5,21 +5,18 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Pencil, Trash } from "lucide-react";
 
+import { GenealogyTab } from "@/components/livestock/detail/genealogy-tab";
+import { HealthTab } from "@/components/livestock/detail/health-tab";
+import { InformasiTab } from "@/components/livestock/detail/informasi-tab";
+import { ReproductionTab } from "@/components/livestock/detail/reproduction-tab";
 import { LivestockFormDialog } from "@/components/livestock/livestock-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  DescriptionItem,
-  DescriptionList,
-} from "@/components/ui/description-list";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
-import { Section, SectionHeader } from "@/components/ui/section";
+import { Tabs } from "@/components/ui/tabs";
 import {
-  ACQUISITION_LABEL,
-  formatAge,
-  formatDate,
   getBreedName,
   getLivestockById,
   getSpeciesName,
@@ -28,11 +25,19 @@ import {
   STATUS_LABEL,
 } from "@/lib/livestock";
 
-const FUTURE_TABS = ["Kesehatan", "Reproduksi", "Silsilah"];
+type DetailTab = "informasi" | "kesehatan" | "reproduksi" | "silsilah";
+
+const TABS = [
+  { value: "informasi", label: "Informasi" },
+  { value: "kesehatan", label: "Kesehatan" },
+  { value: "reproduksi", label: "Reproduksi" },
+  { value: "silsilah", label: "Silsilah" },
+];
 
 export default function LivestockDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const [tab, setTab] = useState<DetailTab>("informasi");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -94,81 +99,17 @@ export default function LivestockDetailPage() {
         }
       />
 
-      <nav className="flex items-center gap-4" aria-label="Bagian ternak">
-        <span className="border-b-2 border-brand-600 pb-2 text-sm font-medium text-ink">
-          Ikhtisar
-        </span>
-        {FUTURE_TABS.map((tab) => (
-          <span
-            key={tab}
-            title="Segera tersedia"
-            className="cursor-not-allowed border-b-2 border-transparent pb-2 text-sm text-subtle"
-          >
-            {tab}
-          </span>
-        ))}
-      </nav>
+      <Tabs
+        tabs={TABS}
+        value={tab}
+        onValueChange={(value) => setTab(value as DetailTab)}
+        aria-label="Bagian ternak"
+      />
 
-      <div className="flex flex-col divide-y divide-border">
-        <Section className="py-5 first:pt-0">
-          <SectionHeader title="Informasi Dasar" />
-          <DescriptionList columns={3}>
-            <DescriptionItem label="Tag Code">
-              <span className="font-mono font-semibold">
-                {animal.tag_code}
-              </span>
-            </DescriptionItem>
-            <DescriptionItem label="Jenis Ternak">
-              {getSpeciesName(animal.species_id)}
-            </DescriptionItem>
-            <DescriptionItem label="Ras">
-              {getBreedName(animal.breed_id)}
-            </DescriptionItem>
-            <DescriptionItem label="Jenis Kelamin">
-              {SEX_LABEL[animal.sex]}
-            </DescriptionItem>
-            <DescriptionItem label="Tanggal Lahir">
-              {formatDate(animal.birth_date)}
-            </DescriptionItem>
-            <DescriptionItem label="Umur">
-              {formatAge(animal.birth_date)}
-            </DescriptionItem>
-          </DescriptionList>
-        </Section>
-
-        <Section className="py-5">
-          <SectionHeader title="Perolehan" />
-          <DescriptionList columns={2}>
-            <DescriptionItem label="Tanggal Perolehan">
-              {formatDate(animal.acquisition_date)}
-            </DescriptionItem>
-            <DescriptionItem label="Cara Perolehan">
-              {ACQUISITION_LABEL[animal.acquisition_type]}
-            </DescriptionItem>
-          </DescriptionList>
-        </Section>
-
-        <Section className="py-5">
-          <SectionHeader title="Asal / Induk" />
-          <DescriptionList columns={2}>
-            <DescriptionItem label="Induk Betina">
-              <ParentReference id={animal.mother_id} />
-            </DescriptionItem>
-            <DescriptionItem label="Induk Jantan">
-              <ParentReference id={animal.father_id} />
-            </DescriptionItem>
-          </DescriptionList>
-        </Section>
-
-        <Section className="py-5 last:pb-0">
-          <SectionHeader title="Catatan" />
-          {animal.notes ? (
-            <p className="text-sm leading-relaxed text-ink">{animal.notes}</p>
-          ) : (
-            <p className="text-sm text-muted">Tidak ada catatan.</p>
-          )}
-        </Section>
-      </div>
+      {tab === "informasi" ? <InformasiTab animal={animal} /> : null}
+      {tab === "kesehatan" ? <HealthTab animal={animal} /> : null}
+      {tab === "reproduksi" ? <ReproductionTab animal={animal} /> : null}
+      {tab === "silsilah" ? <GenealogyTab animal={animal} /> : null}
 
       {editOpen ? (
         <LivestockFormDialog
@@ -191,22 +132,5 @@ export default function LivestockDetailPage() {
         />
       ) : null}
     </div>
-  );
-}
-
-function ParentReference({ id }: { id: string | null }) {
-  const parent = id ? getLivestockById(id) : undefined;
-
-  if (!parent) {
-    return <span className="text-muted">Tidak tercatat</span>;
-  }
-
-  return (
-    <Link
-      href={`/livestock/${parent.id}`}
-      className="font-medium text-brand-700 hover:underline"
-    >
-      {parent.tag_code} — {getBreedName(parent.breed_id)}
-    </Link>
   );
 }

@@ -225,3 +225,15 @@ export function getOffspringByBirth(birthRecordId: string): BirthOffspring[] {
     (offspring) => offspring.birth_record_id === birthRecordId,
   );
 }
+
+export function getReproductionByLivestock(
+  livestockId: string,
+): LivestockReproductionRecord[] {
+  return reproductionRecords
+    .filter(
+      (record) =>
+        record.female_livestock_id === livestockId ||
+        record.male_livestock_id === livestockId,
+    )
+    .sort((a, b) => (a.mating_date < b.mating_date ? 1 : -1));
+}

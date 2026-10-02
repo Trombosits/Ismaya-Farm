@@ -817,3 +817,18 @@ export const healthRecordList: LivestockHealthRecord[] = [
 export const healthConditions: string[] = Array.from(
   new Set(healthRecordList.map((record) => record.condition)),
 );
+
+export function getHealthByLivestock(
+  livestockId: string,
+): LivestockHealthRecord[] {
+  return healthRecordList
+    .filter((record) => record.livestock_id === livestockId)
+    .sort((a, b) => (a.record_date < b.record_date ? 1 : -1));
+}
+
+export function getChildrenOf(livestockId: string): Livestock[] {
+  return livestockList.filter(
+    (animal) =>
+      animal.mother_id === livestockId || animal.father_id === livestockId,
+  );
+}
