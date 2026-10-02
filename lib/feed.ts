@@ -4,6 +4,9 @@
  * and `feed_inventory_transactions` tables. Stock is a derived UI value.
  */
 
+export { suppliers, getSupplierName } from "./suppliers";
+export type { Supplier } from "./suppliers";
+
 export interface FeedType {
   id: string;
   name: string;
@@ -12,11 +15,6 @@ export interface FeedType {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-}
-
-export interface Supplier {
-  id: string;
-  name: string;
 }
 
 export interface FeedPurchase {
@@ -125,13 +123,6 @@ export const feedTypes: FeedType[] = [
     created_at: "2026-08-08",
     updated_at: "2026-08-08",
   },
-];
-
-export const suppliers: Supplier[] = [
-  { id: "sup-01", name: "CV Pakan Sejahtera" },
-  { id: "sup-02", name: "UD Ternak Makmur" },
-  { id: "sup-03", name: "PT Nutrisi Prima" },
-  { id: "sup-04", name: "Toko Pakan Barokah" },
 ];
 
 export const feedPurchases: FeedPurchase[] = [
@@ -553,10 +544,6 @@ export function getFeedTypeName(id: string): string {
 
 export function getFeedTypeUnit(id: string): string {
   return getFeedType(id)?.unit ?? "";
-}
-
-export function getSupplierName(id: string): string {
-  return suppliers.find((supplier) => supplier.id === id)?.name ?? "—";
 }
 
 export function getPurchaseItems(purchaseId: string): FeedPurchaseItem[] {
