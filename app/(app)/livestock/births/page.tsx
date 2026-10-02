@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { SearchInput } from "@/components/ui/search-input";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TableStatePanel } from "@/components/ui/table-state-panel";
@@ -49,6 +50,16 @@ export default function BirthsPage() {
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const searchEmpty = normalized.length > 0 && filtered.length === 0;
 
+  const totalOffspring = filtered.reduce(
+    (sum, record) => sum + record.number_of_offspring,
+    0,
+  );
+  const latestBirthDate = filtered.reduce<string | null>(
+    (max, record) =>
+      max === null || record.birth_date > max ? record.birth_date : max,
+    null,
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
@@ -61,6 +72,15 @@ export default function BirthsPage() {
           </Button>
         }
       />
+
+      <SummaryCards>
+        <SummaryCard label="Total Kelahiran" value={filtered.length} />
+        <SummaryCard label="Total Anak" value={totalOffspring} />
+        <SummaryCard
+          label="Kelahiran Terbaru"
+          value={latestBirthDate ? formatDate(latestBirthDate) : "—"}
+        />
+      </SummaryCards>
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

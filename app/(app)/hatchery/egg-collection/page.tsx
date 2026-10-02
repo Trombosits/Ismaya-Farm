@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -52,6 +53,15 @@ export default function EggCollectionPage() {
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const searchEmpty = isFiltered && filtered.length === 0;
 
+  const totalEggs = filtered.reduce((sum, record) => sum + record.quantity, 0);
+  const latestCollectionDate = filtered.reduce<string | null>(
+    (max, record) =>
+      max === null || record.collection_date > max
+        ? record.collection_date
+        : max,
+    null,
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
@@ -64,6 +74,17 @@ export default function EggCollectionPage() {
           </Button>
         }
       />
+
+      <SummaryCards columns={2}>
+        <SummaryCard
+          label="Total Telur Dikumpulkan"
+          value={formatNumber(totalEggs)}
+        />
+        <SummaryCard
+          label="Pengumpulan Terakhir"
+          value={latestCollectionDate ? formatDate(latestCollectionDate) : "—"}
+        />
+      </SummaryCards>
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -80,6 +81,18 @@ export default function PurchasesPage() {
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const searchEmpty = isFiltered && filtered.length === 0;
 
+  const totalSpending = filtered.reduce(
+    (sum, purchase) => sum + getPurchaseTotal(purchase.id),
+    0,
+  );
+  const latestPurchaseDate = filtered.reduce<string | null>(
+    (max, purchase) =>
+      max === null || purchase.purchase_date > max
+        ? purchase.purchase_date
+        : max,
+    null,
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
@@ -92,6 +105,18 @@ export default function PurchasesPage() {
           </Button>
         }
       />
+
+      <SummaryCards>
+        <SummaryCard label="Total Pembelian" value={filtered.length} />
+        <SummaryCard
+          label="Total Pengeluaran"
+          value={formatCurrency(totalSpending)}
+        />
+        <SummaryCard
+          label="Pembelian Terakhir"
+          value={latestPurchaseDate ? formatDate(latestPurchaseDate) : "—"}
+        />
+      </SummaryCards>
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

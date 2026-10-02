@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -59,6 +60,15 @@ export default function HatcheryBatchesPage() {
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const searchEmpty = isFiltered && filtered.length === 0;
 
+  const incubating = filtered.filter((batch) => batch.status === "incubating");
+  const nearestHatch = incubating.reduce<string | null>(
+    (min, batch) =>
+      min === null || batch.expected_hatch_date < min
+        ? batch.expected_hatch_date
+        : min,
+    null,
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
@@ -71,6 +81,15 @@ export default function HatcheryBatchesPage() {
           </Button>
         }
       />
+
+      <SummaryCards>
+        <SummaryCard label="Total Batch" value={filtered.length} />
+        <SummaryCard label="Batch Berjalan" value={incubating.length} />
+        <SummaryCard
+          label="Perkiraan Menetas Terdekat"
+          value={nearestHatch ? formatDate(nearestHatch) : "—"}
+        />
+      </SummaryCards>
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

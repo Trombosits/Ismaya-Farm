@@ -1,64 +1,88 @@
 "use client";
 
-import { Ellipsis, Eye, Pencil, Trash } from "lucide-react";
+import { Eye, Pencil, Trash } from "lucide-react";
 
-import { DropdownItem, DropdownMenu, DropdownSeparator } from "./dropdown";
+import { cn } from "@/lib/cn";
 
 interface RowActionsProps {
+  onView?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
-  onView?: () => void;
   label?: string;
   viewLabel?: string;
   editLabel?: string;
   deleteLabel?: string;
+  className?: string;
 }
 
+const buttonBase =
+  "grid size-7 place-items-center rounded-md border transition-colors hover:brightness-95 disabled:pointer-events-none disabled:opacity-40";
+
+/**
+ * Icon-only row actions. Each action sits in a small rounded box with its own
+ * restrained color. Text is kept only as a tooltip / accessible label.
+ */
 export function RowActions({
+  onView,
   onEdit,
   onDelete,
-  onView,
   label = "Aksi baris",
-  viewLabel = "Lihat Detail",
+  viewLabel = "Detail",
   editLabel = "Edit",
   deleteLabel = "Hapus",
+  className,
 }: RowActionsProps) {
   return (
-    <DropdownMenu
-      portal
-      className="flex justify-end"
-      trigger={
-        <button
-          type="button"
-          aria-label={label}
-          className="grid size-7 place-items-center rounded-md text-muted transition-colors hover:bg-canvas hover:text-ink"
-        >
-          <Ellipsis className="size-4" />
-        </button>
-      }
+    <div
+      role="group"
+      aria-label={label}
+      className={cn(
+        "flex items-center justify-end gap-1 whitespace-nowrap",
+        className,
+      )}
     >
       {onView ? (
-        <DropdownItem icon={<Eye className="size-3.5" />} onClick={onView}>
-          {viewLabel}
-        </DropdownItem>
+        <button
+          type="button"
+          title={viewLabel}
+          aria-label={viewLabel}
+          onClick={onView}
+          className={cn(
+            buttonBase,
+            "border-info/20 bg-info-soft text-info hover:border-info/40",
+          )}
+        >
+          <Eye aria-hidden className="size-3.5" />
+        </button>
       ) : null}
       {onEdit ? (
-        <DropdownItem icon={<Pencil className="size-3.5" />} onClick={onEdit}>
-          {editLabel}
-        </DropdownItem>
+        <button
+          type="button"
+          title={editLabel}
+          aria-label={editLabel}
+          onClick={onEdit}
+          className={cn(
+            buttonBase,
+            "border-brand-200 bg-brand-50 text-brand-700 hover:border-brand-300",
+          )}
+        >
+          <Pencil aria-hidden className="size-3.5" />
+        </button>
       ) : null}
       {onDelete ? (
-        <>
-          <DropdownSeparator />
-          <DropdownItem
-            icon={<Trash className="size-3.5" />}
-            onClick={onDelete}
-            className="text-danger hover:bg-danger-soft"
-          >
-            {deleteLabel}
-          </DropdownItem>
-        </>
+        <button
+          type="button"
+          title={deleteLabel}
+          aria-label={deleteLabel}
+          onClick={onDelete}
+          className={cn(
+            buttonBase,
+            "border-danger/20 bg-danger-soft text-danger hover:border-danger/40",
+          )}
+        >
+          <Trash aria-hidden className="size-3.5" />
+        </button>
       ) : null}
-    </DropdownMenu>
+    </div>
   );
 }

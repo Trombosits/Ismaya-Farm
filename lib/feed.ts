@@ -602,6 +602,14 @@ export const TRANSACTION_TYPE_LABEL: Record<
   out: "Keluar",
 };
 
+export const REFERENCE_TYPE_LABEL: Record<
+  FeedInventoryTransaction["reference_type"],
+  string
+> = {
+  feed_purchase: "Pembelian Pakan",
+  feed_usage: "Pemakaian",
+};
+
 export function getTransactionReference(
   transaction: FeedInventoryTransaction,
 ): string {

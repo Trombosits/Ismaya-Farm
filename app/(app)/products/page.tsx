@@ -14,6 +14,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -63,6 +64,8 @@ export default function ProductsPage() {
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const searchEmpty = isFiltered && filtered.length === 0;
 
+  const activeCount = filtered.filter((product) => product.is_active).length;
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
@@ -75,6 +78,11 @@ export default function ProductsPage() {
           </Button>
         }
       />
+
+      <SummaryCards columns={2}>
+        <SummaryCard label="Total Produk" value={filtered.length} />
+        <SummaryCard label="Produk Aktif" value={activeCount} />
+      </SummaryCards>
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

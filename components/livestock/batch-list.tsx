@@ -14,6 +14,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TableStatePanel } from "@/components/ui/table-state-panel";
 import { TableToolbar, TableToolbarGroup } from "@/components/ui/table-toolbar";
@@ -81,8 +82,26 @@ export function BatchList({ onCreate, onEdit, onDelete }: BatchListProps) {
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const searchEmpty = isFiltered && filtered.length === 0;
 
+  const totalPopulation = filtered.reduce(
+    (sum, batch) => sum + batch.quantity,
+    0,
+  );
+  const activeCount = filtered.filter(
+    (batch) => batch.status === "active",
+  ).length;
+
   return (
     <div className="flex flex-col gap-5">
+      <SummaryCards>
+        <SummaryCard label="Total Batch" value={filtered.length} />
+        <SummaryCard
+          label="Total Populasi"
+          value={formatNumber(totalPopulation)}
+          hint="Total ekor pada batch"
+        />
+        <SummaryCard label="Batch Aktif" value={activeCount} />
+      </SummaryCards>
+
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">
           <SearchInput

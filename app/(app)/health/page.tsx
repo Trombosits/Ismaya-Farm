@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -83,6 +84,21 @@ export default function HealthPage() {
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const isSearchEmpty = isFiltered && filtered.length === 0;
 
+  const currentMonth = healthRecordList
+    .reduce(
+      (max, record) => (record.record_date > max ? record.record_date : max),
+      "",
+    )
+    .slice(0, 7);
+  const thisMonthCount = filtered.filter((record) =>
+    record.record_date.startsWith(currentMonth),
+  ).length;
+  const lastRecordDate = filtered.reduce<string | null>(
+    (max, record) =>
+      max === null || record.record_date > max ? record.record_date : max,
+    null,
+  );
+
   function update(updateFn: () => void) {
     updateFn();
     setPage(1);
@@ -103,6 +119,19 @@ export default function HealthPage() {
           </Button>
         }
       />
+
+      <SummaryCards>
+        <SummaryCard label="Total Catatan" value={filtered.length} />
+        <SummaryCard
+          label="Pemeriksaan Bulan Ini"
+          value={thisMonthCount}
+          hint="Berdasarkan bulan data terbaru"
+        />
+        <SummaryCard
+          label="Pemeriksaan Terakhir"
+          value={lastRecordDate ? formatDate(lastRecordDate) : "—"}
+        />
+      </SummaryCards>
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

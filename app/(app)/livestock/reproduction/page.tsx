@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -75,6 +76,13 @@ export default function ReproductionPage() {
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const searchEmpty = isFiltered && filtered.length === 0;
 
+  const pregnantCount = filtered.filter(
+    (record) => record.status === "pregnant",
+  ).length;
+  const bornCount = filtered.filter(
+    (record) => record.status === "born",
+  ).length;
+
   function resetPage(updateFn: () => void) {
     updateFn();
     setPage(1);
@@ -92,6 +100,12 @@ export default function ReproductionPage() {
           </Button>
         }
       />
+
+      <SummaryCards>
+        <SummaryCard label="Total Perkawinan" value={filtered.length} />
+        <SummaryCard label="Sedang Bunting" value={pregnantCount} />
+        <SummaryCard label="Sudah Melahirkan" value={bornCount} />
+      </SummaryCards>
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

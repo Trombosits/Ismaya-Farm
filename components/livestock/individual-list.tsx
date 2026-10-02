@@ -15,6 +15,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TableStatePanel } from "@/components/ui/table-state-panel";
 import { TableToolbar, TableToolbarGroup } from "@/components/ui/table-toolbar";
@@ -91,8 +92,29 @@ export function IndividualList({
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const searchEmpty = isFiltered && filtered.length === 0;
 
+  const activeCount = filtered.filter(
+    (animal) => animal.status === "active",
+  ).length;
+  const maleCount = filtered.filter((animal) => animal.sex === "male").length;
+  const femaleCount = filtered.filter(
+    (animal) => animal.sex === "female",
+  ).length;
+
   return (
     <div className="flex flex-col gap-5">
+      <SummaryCards>
+        <SummaryCard label="Total Ternak" value={filtered.length} />
+        <SummaryCard label="Ternak Aktif" value={activeCount} />
+        <SummaryCard
+          label="Komposisi Jenis Kelamin"
+          value={
+            <span className="text-base">
+              Jantan {maleCount} · Betina {femaleCount}
+            </span>
+          }
+        />
+      </SummaryCards>
+
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">
           <SearchInput
