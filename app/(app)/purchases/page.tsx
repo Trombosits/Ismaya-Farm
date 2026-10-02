@@ -10,6 +10,7 @@ import {
 } from "@/components/livestock/table-state-preview";
 import { PurchaseFormDialog } from "@/components/purchases/purchase-form-dialog";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -117,6 +118,8 @@ export default function PurchasesPage() {
           value={latestPurchaseDate ? formatDate(latestPurchaseDate) : "—"}
         />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Pembelian" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

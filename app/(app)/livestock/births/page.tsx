@@ -11,6 +11,7 @@ import {
 import { BirthDetailDialog } from "@/components/reproduction/birth-detail-dialog";
 import { BirthFormDialog } from "@/components/reproduction/birth-form-dialog";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -81,6 +82,8 @@ export default function BirthsPage() {
           value={latestBirthDate ? formatDate(latestBirthDate) : "—"}
         />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Kelahiran" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

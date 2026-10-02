@@ -9,6 +9,7 @@ import {
   type TableViewState,
 } from "@/components/livestock/table-state-preview";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -85,6 +86,8 @@ export default function EggCollectionPage() {
           value={latestCollectionDate ? formatDate(latestCollectionDate) : "—"}
         />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Pengumpulan Telur" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

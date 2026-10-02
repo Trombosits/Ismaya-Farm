@@ -10,6 +10,7 @@ import {
 } from "@/components/livestock/table-state-preview";
 import { SaleFormDialog } from "@/components/sales/sale-form-dialog";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -81,12 +82,18 @@ export default function SalesPage() {
 
       <SummaryCards>
         <SummaryCard label="Total Penjualan" value={filtered.length} />
-        <SummaryCard label="Pendapatan" value={formatCurrency(revenue)} />
+        <SummaryCard
+          label="Pendapatan"
+          value={formatCurrency(revenue)}
+          accent="success"
+        />
         <SummaryCard
           label="Penjualan Terbaru"
           value={latestSaleDate ? formatDate(latestSaleDate) : "—"}
         />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Penjualan" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

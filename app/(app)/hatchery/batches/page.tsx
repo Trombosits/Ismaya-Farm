@@ -11,6 +11,7 @@ import {
 } from "@/components/livestock/table-state-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -84,12 +85,18 @@ export default function HatcheryBatchesPage() {
 
       <SummaryCards>
         <SummaryCard label="Total Batch" value={filtered.length} />
-        <SummaryCard label="Batch Berjalan" value={incubating.length} />
+        <SummaryCard
+          label="Batch Berjalan"
+          value={incubating.length}
+          accent="info"
+        />
         <SummaryCard
           label="Perkiraan Menetas Terdekat"
           value={nearestHatch ? formatDate(nearestHatch) : "—"}
         />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Batch Penetasan" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

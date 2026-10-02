@@ -10,6 +10,7 @@ import {
 import { ProductFormDialog } from "@/components/products/product-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -81,8 +82,14 @@ export default function ProductsPage() {
 
       <SummaryCards columns={2}>
         <SummaryCard label="Total Produk" value={filtered.length} />
-        <SummaryCard label="Produk Aktif" value={activeCount} />
+        <SummaryCard
+          label="Produk Aktif"
+          value={activeCount}
+          accent="success"
+        />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Produk" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

@@ -11,6 +11,7 @@ import {
 } from "@/components/livestock/table-state-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
 import { SearchInput } from "@/components/ui/search-input";
@@ -104,7 +105,11 @@ export function IndividualList({
     <div className="flex flex-col gap-5">
       <SummaryCards>
         <SummaryCard label="Total Ternak" value={filtered.length} />
-        <SummaryCard label="Ternak Aktif" value={activeCount} />
+        <SummaryCard
+          label="Ternak Aktif"
+          value={activeCount}
+          accent="success"
+        />
         <SummaryCard
           label="Komposisi Jenis Kelamin"
           value={
@@ -114,6 +119,8 @@ export function IndividualList({
           }
         />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Ternak" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

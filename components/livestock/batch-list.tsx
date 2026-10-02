@@ -10,6 +10,7 @@ import {
 } from "@/components/livestock/table-state-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { Pagination } from "@/components/ui/pagination";
 import { RowActions } from "@/components/ui/row-actions";
 import { SearchInput } from "@/components/ui/search-input";
@@ -99,8 +100,14 @@ export function BatchList({ onCreate, onEdit, onDelete }: BatchListProps) {
           value={formatNumber(totalPopulation)}
           hint="Total ekor pada batch"
         />
-        <SummaryCard label="Batch Aktif" value={activeCount} />
+        <SummaryCard
+          label="Batch Aktif"
+          value={activeCount}
+          accent="success"
+        />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Batch" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

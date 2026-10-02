@@ -11,6 +11,7 @@ import {
 import { ReproductionFormDialog } from "@/components/reproduction/reproduction-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -103,9 +104,19 @@ export default function ReproductionPage() {
 
       <SummaryCards>
         <SummaryCard label="Total Perkawinan" value={filtered.length} />
-        <SummaryCard label="Sedang Bunting" value={pregnantCount} />
-        <SummaryCard label="Sudah Melahirkan" value={bornCount} />
+        <SummaryCard
+          label="Sedang Bunting"
+          value={pregnantCount}
+          accent="info"
+        />
+        <SummaryCard
+          label="Sudah Melahirkan"
+          value={bornCount}
+          accent="success"
+        />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Perkawinan" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

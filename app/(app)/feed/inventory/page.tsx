@@ -10,6 +10,7 @@ import {
 } from "@/components/livestock/table-state-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -197,13 +198,17 @@ export default function FeedInventoryPage() {
               label="Di Bawah Minimum"
               value={belowCount}
               hint="Stok di bawah batas minimum"
+              accent="danger"
             />
             <SummaryCard
               label="Mendekati Minimum"
               value={nearCount}
               hint="Stok mendekati batas minimum"
+              accent="warning"
             />
           </SummaryCards>
+
+          <DataSectionHeading title="Daftar Stok Pakan" />
 
           <TableToolbar>
             <TableToolbarGroup className="sm:flex-1">

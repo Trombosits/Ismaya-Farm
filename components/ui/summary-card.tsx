@@ -1,5 +1,12 @@
 import { cn } from "@/lib/cn";
 
+export type SummaryAccent =
+  | "brand"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info";
+
 interface SummaryCardsProps {
   children: React.ReactNode;
   columns?: 2 | 3 | 4;
@@ -24,10 +31,19 @@ export function SummaryCards({
   );
 }
 
+const accentStyles: Record<SummaryAccent, string> = {
+  brand: "bg-brand-600",
+  success: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-danger",
+  info: "bg-info",
+};
+
 interface SummaryCardProps {
   label: string;
   value: React.ReactNode;
   hint?: React.ReactNode;
+  accent?: SummaryAccent;
   children?: React.ReactNode;
   className?: string;
 }
@@ -36,20 +52,25 @@ export function SummaryCard({
   label,
   value,
   hint,
+  accent = "brand",
   children,
   className,
 }: SummaryCardProps) {
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col gap-1 rounded-md border border-border bg-surface px-3.5 py-3",
+        "relative flex min-h-[88px] min-w-0 flex-col justify-center gap-1.5 overflow-hidden rounded-md border border-border bg-surface py-3.5 pr-4 pl-4",
         className,
       )}
     >
-      <span className="text-[11px] font-semibold tracking-wider text-subtle uppercase">
+      <span
+        aria-hidden
+        className={cn("absolute inset-y-0 left-0 w-1", accentStyles[accent])}
+      />
+      <span className="truncate text-[11px] font-semibold tracking-wider text-muted uppercase">
         {label}
       </span>
-      <span className="text-lg leading-tight font-semibold text-ink">
+      <span className="text-2xl leading-none font-semibold tracking-tight text-ink">
         {value}
       </span>
       {hint ? <span className="text-xs text-muted">{hint}</span> : null}

@@ -10,6 +10,7 @@ import {
   type TableViewState,
 } from "@/components/livestock/table-state-preview";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -132,6 +133,8 @@ export default function HealthPage() {
           value={lastRecordDate ? formatDate(lastRecordDate) : "—"}
         />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Riwayat Kesehatan" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">

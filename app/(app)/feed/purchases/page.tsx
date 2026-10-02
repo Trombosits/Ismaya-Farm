@@ -10,6 +10,7 @@ import {
   type TableViewState,
 } from "@/components/livestock/table-state-preview";
 import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -97,6 +98,8 @@ export default function FeedPurchasesPage() {
           value={latestPurchaseDate ? formatDate(latestPurchaseDate) : "—"}
         />
       </SummaryCards>
+
+      <DataSectionHeading title="Daftar Pembelian Pakan" />
 
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">
