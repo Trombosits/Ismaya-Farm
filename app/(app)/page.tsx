@@ -1,76 +1,153 @@
-import type { Metadata } from "next";
-import { Info } from "lucide-react";
+"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+
+import {
+  AttentionList,
+  OperationalPanel,
+  RecentActivity,
+} from "@/components/dashboard/panels";
+import { LineChart } from "@/components/reports/charts";
+import { ReportSection } from "@/components/reports/report-ui";
+import {
+  TableStatePreview,
+  type TableViewState,
+} from "@/components/livestock/table-state-preview";
+import { Button } from "@/components/ui/button";
+import { DataSectionHeading } from "@/components/ui/data-section-heading";
+import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/ui/page-header";
-import { Section, SectionHeader } from "@/components/ui/section";
-import { navigation } from "@/lib/navigation";
+import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
+import { getDashboardData } from "@/lib/dashboard";
+import { formatCurrency, formatNumber } from "@/lib/format";
 
-export const metadata: Metadata = {
-  title: "Ringkasan",
-};
+export default function DashboardPage() {
+  const [viewState, setViewState] = useState<TableViewState>("data");
+  const data = getDashboardData();
 
-export default function OverviewPage() {
-  const plannedGroups = navigation.filter((group) =>
-    group.items.some((item) => item.status === "coming-soon"),
-  );
+  const forceEmpty = viewState === "empty";
+  const attention = forceEmpty ? [] : data.attention;
+  const activities = forceEmpty ? [] : data.activities;
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        title="Ringkasan"
-        description="Ikhtisar sistem manajemen operasional peternakan ISMAYA."
-      />
-
-      <Section>
-        <SectionHeader
-          title="Tentang sistem ini"
-          description="Kerangka aplikasi untuk pengelolaan data peternakan dan pertanian."
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
+        <PageHeader
+          title="Ringkasan"
+          description="Pantau kondisi operasional peternakan secara keseluruhan."
+          actions={
+            <TableStatePreview value={viewState} onChange={setViewState} />
+          }
         />
-        <p className="max-w-3xl text-sm leading-relaxed text-muted">
-          Aplikasi ini digunakan untuk mencatat dan mengelola data operasional
-          peternakan secara terpusat, mulai dari data ternak, kesehatan,
-          reproduksi, pakan, penetasan, hingga produk dan penjualan.
+        <p className="text-xs text-subtle">
+          Data diperbarui: 24 Sep 2026, 09:30
         </p>
-        <div className="flex max-w-3xl items-start gap-2.5 rounded-md border border-border bg-panel px-3 py-2.5">
-          <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-info" />
-          <p className="text-xs leading-relaxed text-muted">
-            Tahap ini baru menyiapkan fondasi antarmuka: struktur navigasi,
-            tata letak, dan komponen dasar. Modul data akan diimplementasikan
-            pada tahap berikutnya.
-          </p>
-        </div>
-      </Section>
+      </div>
 
-      <Section>
-        <SectionHeader
-          title="Peta modul"
-          description="Struktur modul yang direncanakan untuk aplikasi."
-        />
-        <dl className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
-          {plannedGroups.map((group) => (
-            <div
-              key={group.label}
-              className="grid gap-2 px-3.5 py-3 sm:grid-cols-[160px_1fr] sm:gap-4"
-            >
-              <dt className="text-[11px] font-semibold tracking-wider text-muted uppercase">
-                {group.label}
-              </dt>
-              <dd className="flex flex-wrap gap-x-5 gap-y-2">
-                {group.items.map((item) => (
-                  <span
-                    key={item.href}
-                    className="inline-flex items-center gap-1.5 text-sm text-ink"
-                  >
-                    {item.label}
-                    <Badge variant="neutral">Segera</Badge>
-                  </span>
-                ))}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </Section>
+      {viewState === "loading" ? (
+        <DashboardSkeleton />
+      ) : viewState === "error" ? (
+        <ErrorState onRetry={() => setViewState("data")} />
+      ) : (
+        <>
+          <div className="flex flex-col gap-3">
+            <DataSectionHeading title="Ringkasan Utama" />
+            <SummaryCards columns={4}>
+              <SummaryCard
+                label="Ternak Individu"
+                value={formatNumber(data.livestockTotal)}
+                hint={`${data.livestockActive} aktif`}
+              />
+              <SummaryCard
+                label="Populasi Batch"
+                value={formatNumber(data.batchPopulation)}
+                hint={`${data.batchActive} batch aktif`}
+                accent="info"
+              />
+              <SummaryCard
+                label="Stok Pakan"
+                value={`${data.feedTypeCount} jenis`}
+                hint={`${data.feedBelowMinimum} di bawah minimum`}
+                accent={data.feedBelowMinimum > 0 ? "danger" : "brand"}
+              />
+              <SummaryCard
+                label="Penjualan"
+                value={`${data.salesCount} transaksi`}
+                hint={`${formatCurrency(data.salesRevenue)} bulan ini`}
+                accent="success"
+              />
+            </SummaryCards>
+          </div>
+
+          <ReportSection
+            title="Perlu Perhatian"
+            description="Beberapa kondisi yang mungkin memerlukan tindakan."
+          >
+            <AttentionList items={attention} />
+          </ReportSection>
+
+          <ReportSection
+            title="Aktivitas Terbaru"
+            description="Ringkasan aktivitas operasional terakhir."
+            actions={
+              <Button variant="ghost" size="sm" disabled>
+                Lihat semua
+              </Button>
+            }
+          >
+            <RecentActivity items={activities} />
+          </ReportSection>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <OperationalPanel
+              title="Reproduksi"
+              actionLabel="Lihat Reproduksi"
+              href="/livestock/reproduction"
+              stats={data.reproduction}
+            />
+            <OperationalPanel
+              title="Penetasan"
+              actionLabel="Lihat Penetasan"
+              href="/hatchery/batches"
+              stats={data.hatchery}
+            />
+          </div>
+
+          <ReportSection
+            title="Tren Penjualan"
+            description="Nilai penjualan enam bulan terakhir."
+          >
+            <LineChart
+              data={data.salesTrend}
+              tone="success"
+              height={180}
+              valueFormat={formatCurrency}
+            />
+          </ReportSection>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="flex flex-col gap-5" aria-busy>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <span
+            key={index}
+            className="h-[88px] animate-pulse rounded-md bg-border/60"
+          />
+        ))}
+      </div>
+      <span className="h-40 animate-pulse rounded-md bg-border/60" />
+      <span className="h-52 animate-pulse rounded-md bg-border/60" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <span className="h-36 animate-pulse rounded-md bg-border/60" />
+        <span className="h-36 animate-pulse rounded-md bg-border/60" />
+      </div>
+      <span className="h-56 animate-pulse rounded-md bg-border/60" />
     </div>
   );
 }

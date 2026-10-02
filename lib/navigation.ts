@@ -44,9 +44,10 @@ export interface NavGroup {
  */
 export const navigation: NavGroup[] = [
   {
+    label: "Overview",
     items: [
       {
-        label: "Ringkasan",
+        label: "Dasbor",
         href: "/",
         icon: LayoutDashboard,
         status: "available",
