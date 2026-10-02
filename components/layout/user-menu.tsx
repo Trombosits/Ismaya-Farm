@@ -20,7 +20,7 @@ export function UserMenu() {
       trigger={
         <button
           type="button"
-          className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-brand-800"
+          className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-brand-800/50"
         >
           <span
             aria-hidden

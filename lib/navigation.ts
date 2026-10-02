@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Baby,
   Boxes,
+  ChartColumn,
   Dna,
   Egg,
   HeartHandshake,
@@ -179,6 +180,17 @@ export const navigation: NavGroup[] = [
         label: "Pembelian",
         href: "/purchases",
         icon: Truck,
+        status: "available",
+      },
+    ],
+  },
+  {
+    label: "Reports",
+    items: [
+      {
+        label: "Laporan",
+        href: "/reports",
+        icon: ChartColumn,
         status: "available",
       },
     ],
