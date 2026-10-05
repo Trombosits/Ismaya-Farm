@@ -33,7 +33,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-brand-900 px-3 backdrop-blur lg:hidden">
         <button
           type="button"
-          onClick={() => setMobileOpen(true)}
+          onClick={() => {
+            console.log("open sidebar");
+            setMobileOpen(true);
+          }}
           aria-label="Buka navigasi"
           aria-expanded={mobileOpen}
           aria-controls="app-sidebar"

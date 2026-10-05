@@ -13,8 +13,21 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         <Logo />
       </div>
 
-      <div className="scrollbar-thin flex-1 overflow-y-auto px-3.5 py-4">
-        <SidebarNav onNavigate={onNavigate} />
+      <div className="relative flex-1 overflow-hidden">
+        <div
+          className="absolute bg-[0%_100%] inset-0 opacity-9"
+          style={{
+            backgroundImage: "url('/images/ismaya-farm-front.png')",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "100%",
+          }}
+        />
+
+        <div className="absolute inset-0" />
+
+        <div className="scrollbar-thin relative h-full overflow-y-auto px-3.5 py-4">
+          <SidebarNav onNavigate={onNavigate} />
+        </div>
       </div>
 
       <div className="relative shrink-0 border-t border-border bg-brand-900 p-2.5">
