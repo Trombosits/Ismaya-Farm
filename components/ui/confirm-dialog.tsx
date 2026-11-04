@@ -13,6 +13,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   destructive?: boolean;
   loading?: boolean;
+  error?: string;
 }
 
 export function ConfirmDialog({
@@ -25,6 +26,7 @@ export function ConfirmDialog({
   cancelLabel = "Batal",
   destructive = false,
   loading = false,
+  error,
 }: ConfirmDialogProps) {
   return (
     <Dialog
@@ -47,6 +49,12 @@ export function ConfirmDialog({
           </Button>
         </>
       }
-    />
+    >
+      {error ? (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+    </Dialog>
   );
 }

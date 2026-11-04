@@ -280,7 +280,7 @@ export function formatDate(iso: string): string {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(parseIso(iso));
+  }).format(parseIso(iso.slice(0, 10)));
 }
 
 /* ------------------------------------------------------------------ */
