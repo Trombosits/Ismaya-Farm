@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Plus, SearchX } from "lucide-react";
 
@@ -24,6 +24,9 @@ import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { TableToolbar, TableToolbarGroup } from "@/components/ui/table-toolbar";
+
+// Asumsi: deleteHealthRecord sudah diekspor dari file actions Anda
+import { deleteHealthRecord } from "@/lib/actions/health"; 
 import {
   formatDate,
   getBreedName,
@@ -49,6 +52,9 @@ export default function HealthPage() {
   const [editing, setEditing] = useState<LivestockHealthRecord | null>(null);
   const [deleting, setDeleting] = useState<LivestockHealthRecord | null>(null);
 
+  // Gunakan useTransition untuk state penghapusan data
+  const [isDeletePending, startDeleteTransition] = useTransition();
+
   const normalized = query.trim().toLowerCase();
   const isFiltered =
     normalized.length > 0 ||
@@ -60,17 +66,23 @@ export default function HealthPage() {
   const filtered = healthRecordList.filter((record) => {
     const animal = getLivestockById(record.livestock_id);
     const tag = animal?.tag_code ?? "";
+    
+    // PERBAIKAN: Gunakan optional chaining (?.) karena condition dan diagnosis bisa bernilai null
     const matchesQuery =
       normalized.length === 0 ||
       tag.toLowerCase().includes(normalized) ||
-      record.condition.toLowerCase().includes(normalized) ||
-      record.diagnosis.toLowerCase().includes(normalized);
+      (record.condition?.toLowerCase().includes(normalized) ?? false) ||
+      (record.diagnosis?.toLowerCase().includes(normalized) ?? false);
+      
     const matchesLivestock =
-      livestockFilter === "all" || record.livestock_id === livestockFilter;
+      livestockFilter === "all" || String(record.livestock_id) === livestockFilter;
+      
     const matchesCondition =
       conditionFilter === "all" || record.condition === conditionFilter;
+      
     const matchesFrom = dateFrom === "" || record.record_date >= dateFrom;
     const matchesTo = dateTo === "" || record.record_date <= dateTo;
+    
     return (
       matchesQuery &&
       matchesLivestock &&
@@ -104,6 +116,19 @@ export default function HealthPage() {
     updateFn();
     setPage(1);
   }
+
+  // PERBAIKAN: Fungsi untuk menangani penghapusan data ke database
+  const handleDeleteConfirm = () => {
+    if (!deleting) return;
+    startDeleteTransition(async () => {
+      const result = await deleteHealthRecord(Number(deleting.id));
+      if (result.ok) {
+        setDeleting(null);
+      } else {
+        alert(result.message || "Gagal menghapus data.");
+      }
+    });
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -156,7 +181,7 @@ export default function HealthPage() {
               >
                 <option value="all">Semua Ternak</option>
                 {livestockList.map((animal) => (
-                  <option key={animal.id} value={animal.id}>
+                  <option key={animal.id} value={String(animal.id)}>
                     {animal.tag_code}
                   </option>
                 ))}
@@ -171,7 +196,7 @@ export default function HealthPage() {
                 }
               >
                 <option value="all">Semua Kondisi</option>
-                {healthConditions.map((condition) => (
+                {healthConditions?.map((condition) => (
                   <option key={condition} value={condition}>
                     {condition}
                   </option>
@@ -266,7 +291,8 @@ export default function HealthPage() {
                       <span className="text-muted">—</span>
                     )}
                   </TD>
-                  <TD>{record.condition}</TD>
+                  {/* PERBAIKAN: Render fallback string jika nilainya null */}
+                  <TD>{record.condition || "—"}</TD>
                   <TD className="text-muted">
                     {record.diagnosis || "—"}
                   </TD>
@@ -313,15 +339,16 @@ export default function HealthPage() {
         />
       ) : null}
 
+      {/* PERBAIKAN: Hubungkan tombol Delete ke Server Action */}
       {deleting ? (
         <ConfirmDialog
           open
           destructive
           title="Hapus Riwayat Kesehatan?"
-          description="Apakah Anda yakin ingin menghapus riwayat kesehatan ini?"
-          confirmLabel="Hapus"
-          onClose={() => setDeleting(null)}
-          onConfirm={() => setDeleting(null)}
+          description={`Apakah Anda yakin ingin menghapus riwayat kesehatan ini? Data yang sudah dihapus tidak dapat dikembalikan.`}
+          confirmLabel={isDeletePending ? "Menghapus..." : "Hapus"}
+          onClose={() => !isDeletePending && setDeleting(null)}
+          onConfirm={handleDeleteConfirm}
         />
       ) : null}
     </div>
