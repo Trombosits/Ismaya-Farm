@@ -12,11 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import type { LivestockBatch } from "@/lib/livestock-batches";
 import {
   ACQUISITION_LABEL,
-  breedList,
-  getBreedsBySpecies,
-  speciesList,
   STATUS_LABEL,
   type AcquisitionType,
+  type LivestockBreed,
+  type LivestockSpecies,
   type LivestockStatus,
 } from "@/lib/livestock";
 
@@ -25,6 +24,8 @@ interface BatchFormDialogProps {
   onClose: () => void;
   mode: "create" | "edit";
   batch?: LivestockBatch | null;
+  speciesList: LivestockSpecies[];
+  breedList: LivestockBreed[];
 }
 
 export function BatchFormDialog({
@@ -32,14 +33,28 @@ export function BatchFormDialog({
   onClose,
   mode,
   batch,
+  speciesList,
+  breedList,
 }: BatchFormDialogProps) {
   const isEdit = mode === "edit";
   const formId = "batch-form";
 
-  const [speciesId, setSpeciesId] = useState(batch?.species_id ?? "");
-  const [breedId, setBreedId] = useState(batch?.breed_id ?? "");
+  const [speciesId, setSpeciesId] = useState(
+    batch?.species_id !== undefined && batch?.species_id !== null
+      ? String(batch.species_id)
+      : "",
+  );
+  const [breedId, setBreedId] = useState(
+    batch?.breed_id !== undefined && batch?.breed_id !== null
+      ? String(batch.breed_id)
+      : "",
+  );
 
-  const breedOptions = speciesId ? getBreedsBySpecies(speciesId) : breedList;
+  const breedOptions = speciesId
+    ? breedList.filter(
+        (breed) => String(breed.species_id) === String(speciesId),
+      )
+    : breedList;
 
   return (
     <Dialog
@@ -96,7 +111,7 @@ export function BatchFormDialog({
                 Pilih jenis ternak
               </option>
               {speciesList.map((species) => (
-                <option key={species.id} value={species.id}>
+                <option key={species.id} value={String(species.id)}>
                   {species.name}
                 </option>
               ))}
@@ -119,7 +134,7 @@ export function BatchFormDialog({
                 Pilih ras
               </option>
               {breedOptions.map((breed) => (
-                <option key={breed.id} value={breed.id}>
+                <option key={breed.id} value={String(breed.id)}>
                   {breed.name}
                 </option>
               ))}

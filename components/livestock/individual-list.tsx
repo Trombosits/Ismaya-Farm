@@ -21,31 +21,33 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TableStatePanel } from "@/components/ui/table-state-panel";
 import { TableToolbar, TableToolbarGroup } from "@/components/ui/table-toolbar";
 import {
-  breedList,
   formatAge,
   formatDate,
-  getBreedName,
-  getBreedsBySpecies,
-  getSpeciesName,
-  livestockList,
   SEX_LABEL,
-  speciesList,
   STATUS_BADGE,
   STATUS_LABEL,
   type Livestock,
   type LivestockSex,
   type LivestockStatus,
+  type LivestockSpecies,
+  type LivestockBreed,
 } from "@/lib/livestock";
 
 const PAGE_SIZE = 10;
 
 interface IndividualListProps {
+  livestockList: Livestock[];
+  speciesList: LivestockSpecies[];
+  breedList: LivestockBreed[];
   onCreate: () => void;
   onEdit: (animal: Livestock) => void;
   onDelete: (animal: Livestock) => void;
 }
 
 export function IndividualList({
+  livestockList,
+  speciesList,
+  breedList,
   onCreate,
   onEdit,
   onDelete,
@@ -60,8 +62,16 @@ export function IndividualList({
   const [viewState, setViewState] = useState<TableViewState>("data");
 
   const normalized = query.trim().toLowerCase();
+  const safeSpeciesList = speciesList ?? [];
+  const safeBreedList = breedList ?? [];
+
+  // Filter pilihan ras berdasarkan jenis spesies yang dipilih
   const breedOptions =
-    speciesFilter === "all" ? breedList : getBreedsBySpecies(speciesFilter);
+    speciesFilter === "all"
+      ? safeBreedList
+      : safeBreedList.filter(
+          (b) => String(b.species_id) === String(speciesFilter),
+        );
 
   const isFiltered =
     normalized.length > 0 ||
@@ -70,19 +80,33 @@ export function IndividualList({
     sexFilter !== "all" ||
     statusFilter !== "all";
 
-  const filtered = livestockList.filter((animal) => {
+  const filtered = (livestockList || []).filter((animal) => {
+    // Cari nama secara dinamis untuk filter teks
+    const speciesName =
+      safeSpeciesList.find(
+        (s) => String(s.id) === String(animal.species_id),
+      )?.name || "";
+    const breedName =
+      safeBreedList.find((b) => String(b.id) === String(animal.breed_id))
+        ?.name || "";
+
     const matchesQuery =
       normalized.length === 0 ||
       animal.tag_code.toLowerCase().includes(normalized) ||
-      getSpeciesName(animal.species_id).toLowerCase().includes(normalized) ||
-      getBreedName(animal.breed_id).toLowerCase().includes(normalized);
+      speciesName.toLowerCase().includes(normalized) ||
+      breedName.toLowerCase().includes(normalized);
+
+    // Bandingkan sebagai string agar cocok untuk ID mock ("sp-01") maupun DB (1)
     const matchesSpecies =
-      speciesFilter === "all" || animal.species_id === speciesFilter;
+      speciesFilter === "all" ||
+      String(animal.species_id) === String(speciesFilter);
     const matchesBreed =
-      breedFilter === "all" || animal.breed_id === breedFilter;
+      breedFilter === "all" ||
+      String(animal.breed_id) === String(breedFilter);
     const matchesSex = sexFilter === "all" || animal.sex === sexFilter;
     const matchesStatus =
       statusFilter === "all" || animal.status === statusFilter;
+
     return (
       matchesQuery && matchesSpecies && matchesBreed && matchesSex && matchesStatus
     );
@@ -141,13 +165,13 @@ export function IndividualList({
                 value={speciesFilter}
                 onChange={(event) => {
                   setSpeciesFilter(event.target.value);
-                  setBreedFilter("all");
+                  setBreedFilter("all"); // Reset ras saat jenis berubah
                   setPage(1);
                 }}
               >
                 <option value="all">Semua Jenis</option>
-                {speciesList.map((species) => (
-                  <option key={species.id} value={species.id}>
+                {speciesList?.map((species) => (
+                  <option key={species.id} value={String(species.id)}>
                     {species.name}
                   </option>
                 ))}
@@ -165,7 +189,7 @@ export function IndividualList({
               >
                 <option value="all">Semua Ras</option>
                 {breedOptions.map((breed) => (
-                  <option key={breed.id} value={breed.id}>
+                  <option key={breed.id} value={String(breed.id)}>
                     {breed.name}
                   </option>
                 ))}
@@ -260,9 +284,9 @@ export function IndividualList({
                     {animal.tag_code}
                   </Link>
                 </TD>
-                <TD>{getSpeciesName(animal.species_id)}</TD>
+                <TD>{speciesList.find(s => s.id === animal.species_id)?.name || "—"}</TD>
                 <TD className="text-muted">
-                  {getBreedName(animal.breed_id)}
+                  {breedList.find(b => b.id === animal.breed_id)?.name || "—"}
                 </TD>
                 <TD className="hidden md:table-cell">
                   {SEX_LABEL[animal.sex]}

@@ -20,31 +20,35 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TableStatePanel } from "@/components/ui/table-state-panel";
 import { TableToolbar, TableToolbarGroup } from "@/components/ui/table-toolbar";
 import {
-  breedList,
   formatDate,
-  getBreedName,
-  getBreedsBySpecies,
-  getSpeciesName,
-  speciesList,
   STATUS_BADGE,
   STATUS_LABEL,
+  type LivestockBreed,
+  type LivestockSpecies,
   type LivestockStatus,
 } from "@/lib/livestock";
-import {
-  livestockBatches,
-  type LivestockBatch,
-} from "@/lib/livestock-batches";
+import type { LivestockBatch } from "@/lib/livestock-batches";
 import { formatNumber } from "@/lib/format";
 
 const PAGE_SIZE = 10;
 
 interface BatchListProps {
+  batches: LivestockBatch[];
+  speciesList: LivestockSpecies[];
+  breedList: LivestockBreed[];
   onCreate: () => void;
   onEdit: (batch: LivestockBatch) => void;
   onDelete: (batch: LivestockBatch) => void;
 }
 
-export function BatchList({ onCreate, onEdit, onDelete }: BatchListProps) {
+export function BatchList({
+  batches,
+  speciesList,
+  breedList,
+  onCreate,
+  onEdit,
+  onDelete,
+}: BatchListProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [speciesFilter, setSpeciesFilter] = useState("all");
@@ -54,8 +58,21 @@ export function BatchList({ onCreate, onEdit, onDelete }: BatchListProps) {
   const [viewState, setViewState] = useState<TableViewState>("data");
 
   const normalized = query.trim().toLowerCase();
+
+  const speciesName = (id: string | number) =>
+    speciesList.find((species) => String(species.id) === String(id))?.name ??
+    "—";
+  const breedName = (id: string | number | null) => {
+    if (id === null || id === "") return "—";
+    return breedList.find((breed) => String(breed.id) === String(id))?.name ?? "—";
+  };
+
   const breedOptions =
-    speciesFilter === "all" ? breedList : getBreedsBySpecies(speciesFilter);
+    speciesFilter === "all"
+      ? breedList
+      : breedList.filter(
+          (breed) => String(breed.species_id) === String(speciesFilter),
+        );
 
   const isFiltered =
     normalized.length > 0 ||
@@ -63,16 +80,17 @@ export function BatchList({ onCreate, onEdit, onDelete }: BatchListProps) {
     breedFilter !== "all" ||
     statusFilter !== "all";
 
-  const filtered = livestockBatches.filter((batch) => {
+  const filtered = batches.filter((batch) => {
     const matchesQuery =
       normalized.length === 0 ||
       batch.batch_code.toLowerCase().includes(normalized) ||
-      getSpeciesName(batch.species_id).toLowerCase().includes(normalized) ||
-      getBreedName(batch.breed_id).toLowerCase().includes(normalized);
+      speciesName(batch.species_id).toLowerCase().includes(normalized) ||
+      breedName(batch.breed_id).toLowerCase().includes(normalized);
     const matchesSpecies =
-      speciesFilter === "all" || batch.species_id === speciesFilter;
+      speciesFilter === "all" ||
+      String(batch.species_id) === String(speciesFilter);
     const matchesBreed =
-      breedFilter === "all" || batch.breed_id === breedFilter;
+      breedFilter === "all" || String(batch.breed_id) === String(breedFilter);
     const matchesStatus =
       statusFilter === "all" || batch.status === statusFilter;
     return matchesQuery && matchesSpecies && matchesBreed && matchesStatus;
@@ -134,7 +152,7 @@ export function BatchList({ onCreate, onEdit, onDelete }: BatchListProps) {
               >
                 <option value="all">Semua Jenis</option>
                 {speciesList.map((species) => (
-                  <option key={species.id} value={species.id}>
+                  <option key={species.id} value={String(species.id)}>
                     {species.name}
                   </option>
                 ))}
@@ -152,7 +170,7 @@ export function BatchList({ onCreate, onEdit, onDelete }: BatchListProps) {
               >
                 <option value="all">Semua Ras</option>
                 {breedOptions.map((breed) => (
-                  <option key={breed.id} value={breed.id}>
+                  <option key={breed.id} value={String(breed.id)}>
                     {breed.name}
                   </option>
                 ))}
@@ -231,8 +249,8 @@ export function BatchList({ onCreate, onEdit, onDelete }: BatchListProps) {
                     {batch.batch_code}
                   </button>
                 </TD>
-                <TD>{getSpeciesName(batch.species_id)}</TD>
-                <TD className="text-muted">{getBreedName(batch.breed_id)}</TD>
+                <TD>{speciesName(batch.species_id)}</TD>
+                <TD className="text-muted">{breedName(batch.breed_id)}</TD>
                 <TD className="text-right font-medium">
                   {formatNumber(batch.quantity)}
                 </TD>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,21 +12,23 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import {
-  breedList,
-  getBreedName,
-  getBreedsBySpecies,
-  getSpeciesName,
-  livestockList,
   SEX_LABEL,
-  speciesList,
+  type Livestock,
+  type LivestockBreed,
   type LivestockSex,
+  type LivestockSpecies,
 } from "@/lib/livestock";
+import { createLivestockBulk } from "@/lib/actions/livestock";
+import type { ActionState } from "@/lib/actions/types";
 
 const PREVIEW_LIMIT = 100;
 
 interface BulkAddDialogProps {
   open: boolean;
   onClose: () => void;
+  speciesList: LivestockSpecies[];
+  breedList: LivestockBreed[];
+  livestockList: Livestock[];
 }
 
 interface BulkFields {
@@ -46,14 +49,32 @@ const INITIAL: BulkFields = {
   startNumber: "1",
 };
 
-export function BulkAddDialog({ open, onClose }: BulkAddDialogProps) {
+export function BulkAddDialog({
+  open,
+  onClose,
+  speciesList,
+  breedList,
+  livestockList,
+}: BulkAddDialogProps) {
   const [step, setStep] = useState<"form" | "preview">("form");
   const [submitted, setSubmitted] = useState(false);
   const [fields, setFields] = useState<BulkFields>(INITIAL);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [state, setState] = useState<ActionState | null>(null);
 
   const breedOptions = fields.speciesId
-    ? getBreedsBySpecies(fields.speciesId)
+    ? breedList.filter(
+        (breed) => String(breed.species_id) === String(fields.speciesId),
+      )
     : breedList;
+
+  const speciesName =
+    speciesList.find((species) => String(species.id) === String(fields.speciesId))
+      ?.name ?? "—";
+  const breedName =
+    breedList.find((breed) => String(breed.id) === String(fields.breedId))
+      ?.name ?? "—";
 
   const count = Number(fields.count);
   const start = Number(fields.startNumber);
@@ -97,8 +118,24 @@ export function BulkAddDialog({ open, onClose }: BulkAddDialogProps) {
   }
 
   function handleSubmit() {
-    // Prototype only: no persistence. Simulated creation.
-    onClose();
+    const formData = new FormData();
+    formData.set("species_id", fields.speciesId);
+    formData.set("breed_id", fields.breedId);
+    formData.set("sex", fields.sex);
+    formData.set("count", fields.count);
+    formData.set("prefix", fields.prefix);
+    formData.set("start_number", fields.startNumber);
+
+    setState(null);
+    startTransition(async () => {
+      const result = await createLivestockBulk(formData);
+      if (result.ok) {
+        router.refresh();
+        onClose();
+      } else {
+        setState(result);
+      }
+    });
   }
 
   return (
@@ -115,7 +152,12 @@ export function BulkAddDialog({ open, onClose }: BulkAddDialogProps) {
       footer={
         step === "form" ? (
           <>
-            <Button variant="secondary" size="sm" onClick={onClose}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onClose}
+              disabled={pending}
+            >
               Batal
             </Button>
             <Button size="sm" onClick={handleNext}>
@@ -124,13 +166,19 @@ export function BulkAddDialog({ open, onClose }: BulkAddDialogProps) {
           </>
         ) : (
           <>
-            <Button variant="secondary" size="sm" onClick={handleBack}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleBack}
+              disabled={pending}
+            >
               Kembali / Ubah Input
             </Button>
             <Button
               size="sm"
               onClick={handleSubmit}
               disabled={conflicts.length > 0}
+              loading={pending}
             >
               Buat Ternak
             </Button>
@@ -262,17 +310,25 @@ export function BulkAddDialog({ open, onClose }: BulkAddDialogProps) {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
+          {state && !state.ok ? (
+            <p
+              role="alert"
+              className="rounded-md border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger"
+            >
+              {state.message}
+            </p>
+          ) : null}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <span className="text-muted">
               Jenis:{" "}
               <span className="font-medium text-ink">
-                {getSpeciesName(fields.speciesId)}
+                {speciesName}
               </span>
             </span>
             <span className="text-muted">
               Ras:{" "}
               <span className="font-medium text-ink">
-                {getBreedName(fields.breedId)}
+                {breedName}
               </span>
             </span>
             <span className="text-muted">
@@ -328,9 +384,9 @@ export function BulkAddDialog({ open, onClose }: BulkAddDialogProps) {
                   <TD className="font-mono text-[13px] font-semibold">
                     {code}
                   </TD>
-                  <TD>{getSpeciesName(fields.speciesId)}</TD>
+                  <TD>{speciesName}</TD>
                   <TD className="text-muted">
-                    {getBreedName(fields.breedId)}
+                    {breedName}
                   </TD>
                   <TD>{SEX_LABEL[fields.sex as LivestockSex]}</TD>
                 </TR>
