@@ -8,15 +8,15 @@
 import type { AcquisitionType, LivestockStatus } from "./livestock";
 
 export interface LivestockBatch {
-  id: string;
+  id: string | number;
   batch_code: string;
-  species_id: string;
-  breed_id: string | null;
+  species_id: string | number;
+  breed_id: string | number | null;
   quantity: number;
   acquisition_date: string;
   acquisition_type: AcquisitionType;
   status: LivestockStatus;
-  notes: string;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -180,6 +180,6 @@ export const livestockBatches: LivestockBatch[] = [
   },
 ];
 
-export function getBatchById(id: string): LivestockBatch | undefined {
-  return livestockBatches.find((batch) => batch.id === id);
+export function getBatchById(id: string | number): LivestockBatch | undefined {
+  return livestockBatches.find((batch) => String(batch.id) === String(id));
 }

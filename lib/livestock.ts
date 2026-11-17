@@ -1,13 +1,16 @@
 /**
- * Frontend-only reference data.
+ * Client-safe livestock reference.
  *
- * Shapes mirror the future database tables `livestock_species` and
- * `livestock_breeds` so the UI stays consistent with the planned backend.
- * There is intentionally no persistence, API, or ORM layer here.
+ * Berisi tipe, konstanta, helper format, serta data mock untuk modul yang belum
+ * dimigrasi ke database. JANGAN import modul server-only di sini — file ini
+ * dipakai Client Component. Akses database ada di `lib/livestock.server.ts`.
+ *
+ * ID sengaja bertipe `string | number`: data mock memakai string ("sp-01"),
+ * sedangkan baris database (bigint) memakai number.
  */
 
 export interface LivestockSpecies {
-  id: string;
+  id: string | number;
   name: string;
   code: string;
   created_at: string;
@@ -15,13 +18,114 @@ export interface LivestockSpecies {
 }
 
 export interface LivestockBreed {
-  id: string;
-  species_id: string;
+  id: string | number;
+  species_id: string | number;
   name: string;
   code: string;
   created_at: string;
   updated_at: string;
 }
+
+export type LivestockSex = "male" | "female";
+export type LivestockStatus = "active" | "sold" | "dead" | "transferred";
+export type AcquisitionType = "born" | "purchased" | "gift";
+
+export interface Livestock {
+  id: string | number;
+  tag_code: string;
+  species_id: string | number;
+  breed_id: string | number | null;
+  sex: LivestockSex;
+  birth_date: string;
+  acquisition_date: string;
+  acquisition_type: AcquisitionType;
+  status: LivestockStatus;
+  mother_id: string | number | null;
+  father_id: string | number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LivestockHealthRecord {
+  id: string | number;
+  livestock_id: string | number;
+  record_date: string;
+  condition: string;
+  diagnosis: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const SEX_LABEL: Record<LivestockSex, string> = {
+  male: "Jantan",
+  female: "Betina",
+};
+
+export const STATUS_LABEL: Record<LivestockStatus, string> = {
+  active: "Aktif",
+  sold: "Dijual",
+  dead: "Mati",
+  transferred: "Dipindahkan",
+};
+
+export const STATUS_BADGE: Record<
+  LivestockStatus,
+  "success" | "info" | "danger" | "neutral"
+> = {
+  active: "success",
+  sold: "info",
+  dead: "danger",
+  transferred: "neutral",
+};
+
+export const ACQUISITION_LABEL: Record<AcquisitionType, string> = {
+  born: "Lahir di Peternakan",
+  purchased: "Pembelian",
+  gift: "Hibah",
+};
+
+function parseIso(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  const date = parseIso(iso.slice(0, 10));
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+/** Menghitung umur berdasarkan tanggal hari ini. */
+export function formatAge(birthIso: string | null): string {
+  if (!birthIso) return "—";
+  const birth = parseIso(birthIso);
+  if (Number.isNaN(birth.getTime())) return "—";
+  const now = new Date();
+
+  let months =
+    (now.getFullYear() - birth.getFullYear()) * 12 +
+    (now.getMonth() - birth.getMonth());
+  if (now.getDate() < birth.getDate()) months -= 1;
+  if (months < 0) months = 0;
+
+  const years = Math.floor(months / 12);
+  const remainder = months % 12;
+
+  if (years === 0) return `${months} bln`;
+  if (remainder === 0) return `${years} th`;
+  return `${years} th ${remainder} bln`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Mock reference data (untuk modul yang belum dimigrasi)              */
+/* ------------------------------------------------------------------ */
 
 export const speciesList: LivestockSpecies[] = [
   {
@@ -256,87 +360,6 @@ export const breedList: LivestockBreed[] = [
     updated_at: "2026-09-20",
   },
 ];
-
-export function getSpeciesName(speciesId: string): string {
-  return speciesList.find((species) => species.id === speciesId)?.name ?? "—";
-}
-
-export function getBreedName(breedId: string | null): string {
-  if (!breedId) return "—";
-  return breedList.find((breed) => breed.id === breedId)?.name ?? "—";
-}
-
-export function getBreedsBySpecies(speciesId: string): LivestockBreed[] {
-  return breedList.filter((breed) => breed.species_id === speciesId);
-}
-
-function parseIso(iso: string): Date {
-  const [year, month, day] = iso.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-export function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(parseIso(iso.slice(0, 10)));
-}
-
-/* ------------------------------------------------------------------ */
-/* Individual livestock (`livestock`)                                   */
-/* ------------------------------------------------------------------ */
-
-export type LivestockSex = "male" | "female";
-
-export type LivestockStatus = "active" | "sold" | "dead" | "transferred";
-
-export type AcquisitionType = "born" | "purchased" | "gift";
-
-export interface Livestock {
-  id: string;
-  tag_code: string;
-  species_id: string;
-  breed_id: string | null;
-  sex: LivestockSex;
-  birth_date: string;
-  acquisition_date: string;
-  acquisition_type: AcquisitionType;
-  status: LivestockStatus;
-  mother_id: string | null;
-  father_id: string | null;
-  notes: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export const SEX_LABEL: Record<LivestockSex, string> = {
-  male: "Jantan",
-  female: "Betina",
-};
-
-export const STATUS_LABEL: Record<LivestockStatus, string> = {
-  active: "Aktif",
-  sold: "Dijual",
-  dead: "Mati",
-  transferred: "Dipindahkan",
-};
-
-export const STATUS_BADGE: Record<
-  LivestockStatus,
-  "success" | "info" | "danger" | "neutral"
-> = {
-  active: "success",
-  sold: "info",
-  dead: "danger",
-  transferred: "neutral",
-};
-
-export const ACQUISITION_LABEL: Record<AcquisitionType, string> = {
-  born: "Lahir di Peternakan",
-  purchased: "Pembelian",
-  gift: "Hibah",
-};
 
 export const livestockList: Livestock[] = [
   {
@@ -661,56 +684,6 @@ export const livestockList: Livestock[] = [
   },
 ];
 
-export function getLivestockById(id: string): Livestock | undefined {
-  return livestockList.find((animal) => animal.id === id);
-}
-
-export function getLivestockLabel(id: string | null): string {
-  if (!id) return "—";
-  return getLivestockById(id)?.tag_code ?? "—";
-}
-
-/** Human-readable reference such as `KMB-012 — Etawa`. */
-export function getLivestockReference(id: string | null): string {
-  if (!id) return "Tidak tercatat";
-  const animal = getLivestockById(id);
-  if (!animal) return "Tidak tercatat";
-  return `${animal.tag_code} — ${getBreedName(animal.breed_id)}`;
-}
-
-const AGE_REFERENCE = new Date(2026, 8, 24);
-
-/** Derived display value, never a stored field. */
-export function formatAge(birthIso: string): string {
-  const birth = parseIso(birthIso);
-  let months =
-    (AGE_REFERENCE.getFullYear() - birth.getFullYear()) * 12 +
-    (AGE_REFERENCE.getMonth() - birth.getMonth());
-  if (AGE_REFERENCE.getDate() < birth.getDate()) months -= 1;
-  if (months < 0) months = 0;
-
-  const years = Math.floor(months / 12);
-  const remainder = months % 12;
-  if (years === 0) return `${months} bln`;
-  if (remainder === 0) return `${years} th`;
-  return `${years} th ${remainder} bln`;
-}
-
-/* ------------------------------------------------------------------ */
-/* Health records (`livestock_health_records`)                          */
-/* ------------------------------------------------------------------ */
-
-export interface LivestockHealthRecord {
-  id: string;
-  livestock_id: string;
-  record_date: string;
-  condition: string;
-  diagnosis: string;
-  notes: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export const healthRecordList: LivestockHealthRecord[] = [
   {
     id: "hr-01",
@@ -813,22 +786,71 @@ export const healthRecordList: LivestockHealthRecord[] = [
     updated_at: "2026-08-06",
   },
 ];
+/* ------------------------------------------------------------------ */
+/* Sync lookups over the mock reference data                           */
+/* ------------------------------------------------------------------ */
+
+export function getSpeciesName(speciesId: string | number): string {
+  return (
+    speciesList.find((species) => String(species.id) === String(speciesId))
+      ?.name ?? "—"
+  );
+}
+
+export function getBreedName(breedId: string | number | null): string {
+  if (breedId === null || breedId === "") return "—";
+  return (
+    breedList.find((breed) => String(breed.id) === String(breedId))?.name ?? "—"
+  );
+}
+
+export function getBreedsBySpecies(
+  speciesId: string | number,
+): LivestockBreed[] {
+  return breedList.filter(
+    (breed) => String(breed.species_id) === String(speciesId),
+  );
+}
+
+export function getLivestockById(
+  id: string | number,
+): Livestock | undefined {
+  return livestockList.find((animal) => String(animal.id) === String(id));
+}
+
+export function getLivestockLabel(id: string | number | null): string {
+  if (id === null || id === "") return "—";
+  return getLivestockById(id)?.tag_code ?? "—";
+}
+
+/** Human-readable reference seperti `KMB-012 — Etawa`. */
+export function getLivestockReference(id: string | number | null): string {
+  if (id === null || id === "") return "Tidak tercatat";
+  const animal = getLivestockById(id);
+  if (!animal) return "Tidak tercatat";
+  return `${animal.tag_code} — ${getBreedName(animal.breed_id)}`;
+}
 
 export const healthConditions: string[] = Array.from(
-  new Set(healthRecordList.map((record) => record.condition)),
+  new Set(
+    healthRecordList
+      .map((record) => record.condition)
+      .filter((condition): condition is string => Boolean(condition)),
+  ),
 );
 
 export function getHealthByLivestock(
-  livestockId: string,
+  livestockId: string | number,
 ): LivestockHealthRecord[] {
   return healthRecordList
-    .filter((record) => record.livestock_id === livestockId)
-    .sort((a, b) => (a.record_date < b.record_date ? 1 : -1));
+    .filter((record) => String(record.livestock_id) === String(livestockId))
+    .sort((a, b) => b.record_date.localeCompare(a.record_date));
 }
 
-export function getChildrenOf(livestockId: string): Livestock[] {
+export function getChildrenOf(livestockId: string | number): Livestock[] {
   return livestockList.filter(
     (animal) =>
-      animal.mother_id === livestockId || animal.father_id === livestockId,
+      String(animal.mother_id) === String(livestockId) ||
+      String(animal.father_id) === String(livestockId),
   );
 }

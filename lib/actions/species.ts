@@ -77,6 +77,7 @@ export async function createSpecies(formData: FormData): Promise<ActionState> {
 
   revalidatePath("/livestock/species");
   revalidatePath("/livestock/breeds");
+  revalidatePath("/livestock");
   return { ok: true };
 }
 
@@ -96,13 +97,18 @@ export async function updateSpecies(
   const supabase = await createClient();
   const { error } = await supabase
     .from("livestock_species")
-    .update({ name: parsed.data.name, code: parsed.data.code })
+    .update({
+      name: parsed.data.name,
+      code: parsed.data.code,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id);
 
   if (error) return mapWriteError(error);
 
   revalidatePath("/livestock/species");
   revalidatePath("/livestock/breeds");
+  revalidatePath("/livestock");
   return { ok: true };
 }
 
@@ -126,5 +132,6 @@ export async function deleteSpecies(id: number): Promise<ActionState> {
 
   revalidatePath("/livestock/species");
   revalidatePath("/livestock/breeds");
+  revalidatePath("/livestock");
   return { ok: true };
 }
