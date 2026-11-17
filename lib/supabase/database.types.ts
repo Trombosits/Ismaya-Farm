@@ -244,6 +244,182 @@ export type Database = {
           },
         ];
       };
+      product_categories: {
+        Row: {
+          id: number;
+          name: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          name: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          name?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      products: {
+        Row: {
+          id: number;
+          category_id: number;
+          name: string;
+          sku: string;
+          unit: string;
+          selling_price: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          category_id: number;
+          name: string;
+          sku: string;
+          unit: string;
+          selling_price?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          category_id?: number;
+          name?: string;
+          sku?: string;
+          unit?: string;
+          selling_price?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "product_categories";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sales: {
+        Row: {
+          id: number;
+          invoice_number: string;
+          sale_date: string;
+          customer_name: string;
+          customer_phone: string | null;
+          total_amount: number;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          invoice_number: string;
+          sale_date: string;
+          customer_name: string;
+          customer_phone?: string | null;
+          total_amount?: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          invoice_number?: string;
+          sale_date?: string;
+          customer_name?: string;
+          customer_phone?: string | null;
+          total_amount?: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      sale_item: {
+        Row: {
+          id: number;
+          sale_id: number;
+          product_id: number;
+          quantity: number;
+          unit_price: number;
+          subtotal: number;
+        };
+        Insert: {
+          id?: number;
+          sale_id: number;
+          product_id: number;
+          quantity?: number;
+          unit_price?: number;
+          subtotal?: number;
+        };
+        Update: {
+          id?: number;
+          sale_id?: number;
+          product_id?: number;
+          quantity?: number;
+          unit_price?: number;
+          subtotal?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sale_item_sale_id_fkey";
+            columns: ["sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sale_item_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sale_item_livestock: {
+        Row: {
+          id: number;
+          sale_item_id: number;
+          livestock_id: number;
+        };
+        Insert: {
+          id?: number;
+          sale_item_id: number;
+          livestock_id: number;
+        };
+        Update: {
+          id?: number;
+          sale_item_id?: number;
+          livestock_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sale_item_livestock_sale_item_id_fkey";
+            columns: ["sale_item_id"];
+            isOneToOne: false;
+            referencedRelation: "sale_item";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sale_item_livestock_livestock_id_fkey";
+            columns: ["livestock_id"];
+            isOneToOne: false;
+            referencedRelation: "livestock";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
