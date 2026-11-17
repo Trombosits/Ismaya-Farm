@@ -1,7 +1,9 @@
 /**
- * Frontend-only reference data for products and sales.
- * Shapes mirror the future `product_categories`, `products`, `sales`,
- * `sale_items` and `sale_item_livestock` tables. No persistence layer exists.
+ * Product & sales types.
+ *
+ * Data access for the Produk and Penjualan modules lives in
+ * `lib/products.server.ts`. The legacy mock exports below are retained only for
+ * the reports module, which is outside the current migration scope.
  */
 
 export interface ProductCategory {
@@ -48,6 +50,15 @@ export interface SaleItemLivestock {
   id: string;
   sale_item_id: string;
   livestock_id: string;
+}
+
+export interface SaleItemDetail extends SaleItem {
+  livestock_ids: string[];
+}
+
+export interface SaleDetail {
+  sale: Sale;
+  items: SaleItemDetail[];
 }
 
 export const productCategories: ProductCategory[] = [

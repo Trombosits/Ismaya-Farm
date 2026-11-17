@@ -16,3 +16,22 @@ export type SpeciesUpdate = TablesUpdate<"livestock_species">;
 export type BreedRow = Tables<"livestock_breeds">;
 export type BreedInsert = TablesInsert<"livestock_breeds">;
 export type BreedUpdate = TablesUpdate<"livestock_breeds">;
+
+export type ProductCategoryRow = Tables<"product_categories">;
+export type ProductCategoryInsert = TablesInsert<"product_categories">;
+export type ProductCategoryUpdate = TablesUpdate<"product_categories">;
+
+export type ProductRow = Tables<"products">;
+export type ProductInsert = TablesInsert<"products">;
+export type ProductUpdate = TablesUpdate<"products">;
+
+export type SaleRow = Tables<"sales">;
+export type SaleInsert = TablesInsert<"sales">;
+export type SaleUpdate = TablesUpdate<"sales">;
+
+export type SaleItemRow = Tables<"sale_item">;
+export type SaleItemInsert = TablesInsert<"sale_item">;
+export type SaleItemUpdate = TablesUpdate<"sale_item">;
+
+export type SaleItemLivestockRow = Tables<"sale_item_livestock">;
+export type SaleItemLivestockInsert = TablesInsert<"sale_item_livestock">;
