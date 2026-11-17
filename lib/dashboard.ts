@@ -18,7 +18,7 @@ import {
   livestockList,
 } from "./livestock";
 import { livestockBatches } from "./livestock-batches";
-import { getSaleTotal, sales } from "./products";
+import type { Sale } from "./products";
 import { birthRecords, reproductionRecords } from "./reproduction";
 import { eggCollectionRecords, hatcheryBatches } from "./hatchery";
 import {
@@ -88,7 +88,7 @@ function minIso(candidates: string[]): string | null {
   );
 }
 
-export function getDashboardData(): DashboardData {
+export function getDashboardData(sales: Sale[]): DashboardData {
   const referenceIso = `${REFERENCE_DATE.getFullYear()}-${String(
     REFERENCE_DATE.getMonth() + 1,
   ).padStart(2, "0")}-${String(REFERENCE_DATE.getDate()).padStart(2, "0")}`;
@@ -121,7 +121,7 @@ export function getDashboardData(): DashboardData {
   );
   const salesCount = salesInMonth.length;
   const salesRevenue = salesInMonth.reduce(
-    (sum, sale) => sum + getSaleTotal(sale.id),
+    (sum, sale) => sum + sale.total_amount,
     0,
   );
 
@@ -277,7 +277,7 @@ export function getDashboardData(): DashboardData {
     sales,
     (sale) => sale.sale_date,
     trendRange,
-    (sale) => getSaleTotal(sale.id),
+    (sale) => sale.total_amount,
   ).map((point) => ({ label: point.label, value: point.value }));
 
   return {

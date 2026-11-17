@@ -86,6 +86,7 @@ export async function createBreed(formData: FormData): Promise<ActionState> {
   if (error) return mapWriteError(error);
 
   revalidatePath("/livestock/breeds");
+  revalidatePath("/livestock");
   return { ok: true };
 }
 
@@ -109,12 +110,14 @@ export async function updateBreed(
       species_id: parsed.data.species_id,
       name: parsed.data.name,
       code: parsed.data.code,
+      updated_at: new Date().toISOString(),
     })
     .eq("id", id);
 
   if (error) return mapWriteError(error);
 
   revalidatePath("/livestock/breeds");
+  revalidatePath("/livestock");
   return { ok: true };
 }
 
@@ -137,5 +140,6 @@ export async function deleteBreed(id: number): Promise<ActionState> {
   }
 
   revalidatePath("/livestock/breeds");
+  revalidatePath("/livestock");
   return { ok: true };
 }
