@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,12 +11,16 @@ import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCurrency } from "@/lib/format";
 import {
-  purchaseCategories,
-  suppliers,
-  type Purchase,
-  type PurchaseItem,
+  createPurchase,
+  updatePurchase,
+} from "@/lib/actions/purchases";
+import type { ActionState } from "@/lib/actions/types";
+import { formatCurrency } from "@/lib/format";
+import type {
+  Purchase,
+  PurchaseCategory,
+  PurchaseItem,
 } from "@/lib/purchases";
 
 interface PurchaseItemRow {
@@ -32,6 +37,7 @@ interface PurchaseFormDialogProps {
   mode: "create" | "edit";
   purchase?: Purchase | null;
   initialItems?: PurchaseItem[];
+  categories: PurchaseCategory[];
 }
 
 function buildInitialItems(items?: PurchaseItem[]): PurchaseItemRow[] {
@@ -55,10 +61,14 @@ export function PurchaseFormDialog({
   mode,
   purchase,
   initialItems,
+  categories,
 }: PurchaseFormDialogProps) {
+  const router = useRouter();
   const isEdit = mode === "edit";
   const formId = "purchase-form";
   const keyCounter = useRef(1000);
+  const [pending, startTransition] = useTransition();
+  const [state, setState] = useState<ActionState | null>(null);
 
   const [items, setItems] = useState<PurchaseItemRow[]>(() =>
     buildInitialItems(initialItems),
@@ -87,6 +97,40 @@ export function PurchaseFormDialog({
     setItems((current) => current.filter((item) => item.key !== key));
   }
 
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    formData.set(
+      "items",
+      JSON.stringify(
+        items.map((item) => ({
+          item_name: item.item_name,
+          quantity: Number(item.quantity),
+          unit: item.unit,
+          unit_price: Number(item.unit_price),
+        })),
+      ),
+    );
+    setState(null);
+
+    startTransition(async () => {
+      const result =
+        isEdit && purchase
+          ? await updatePurchase(Number(purchase.id), formData)
+          : await createPurchase(formData);
+
+      if (result.ok) {
+        router.refresh();
+        onClose();
+      } else {
+        setState(result);
+      }
+    });
+  }
+
+  const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
+  const generalError = state && !state.ok ? state.message : undefined;
+
   return (
     <Dialog
       open={open}
@@ -100,10 +144,15 @@ export function PurchaseFormDialog({
       className="max-w-3xl"
       footer={
         <>
-          <Button variant="secondary" size="sm" onClick={onClose}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onClose}
+            disabled={pending}
+          >
             Batal
           </Button>
-          <Button type="submit" form={formId} size="sm">
+          <Button type="submit" form={formId} size="sm" loading={pending}>
             Simpan
           </Button>
         </>
@@ -111,47 +160,64 @@ export function PurchaseFormDialog({
     >
       <form
         id={formId}
-        onSubmit={(event) => {
-          event.preventDefault();
-          onClose();
-        }}
+        onSubmit={handleSubmit}
         className="scrollbar-thin flex max-h-[72vh] flex-col gap-6 overflow-y-auto"
       >
+        {generalError ? (
+          <p
+            role="alert"
+            className="rounded-md border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger"
+          >
+            {generalError}
+          </p>
+        ) : null}
+
         <FormSection title="Informasi Pembelian">
-          <Field label="Tanggal" htmlFor="pu-date" required>
+          <Field
+            label="Tanggal"
+            htmlFor="pu-date"
+            required
+            error={fieldErrors?.purchase_date}
+          >
             <Input
               id="pu-date"
               name="purchase_date"
               type="date"
               defaultValue={purchase?.purchase_date ?? ""}
+              disabled={pending}
             />
           </Field>
-          <Field label="Supplier" htmlFor="pu-supplier" required>
-            <Select
+          <Field
+            label="Supplier"
+            htmlFor="pu-supplier"
+            required
+            error={fieldErrors?.supplier}
+          >
+            <Input
               id="pu-supplier"
-              name="supplier_id"
-              defaultValue={purchase?.supplier_id ?? ""}
-            >
-              <option value="" disabled>
-                Pilih supplier
-              </option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </Select>
+              name="supplier"
+              defaultValue={purchase?.supplier ?? ""}
+              placeholder="Contoh: CV Pakan Sejahtera"
+              autoComplete="off"
+              disabled={pending}
+            />
           </Field>
-          <Field label="Kategori" htmlFor="pu-category" required>
+          <Field
+            label="Kategori"
+            htmlFor="pu-category"
+            required
+            error={fieldErrors?.category_id}
+          >
             <Select
               id="pu-category"
               name="category_id"
               defaultValue={purchase?.category_id ?? ""}
+              disabled={pending}
             >
               <option value="" disabled>
                 Pilih kategori
               </option>
-              {purchaseCategories.map((category) => (
+              {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -191,6 +257,7 @@ export function PurchaseFormDialog({
                       aria-label="Nama item"
                       value={item.item_name}
                       placeholder="Contoh: Vaksin ND"
+                      disabled={pending}
                       onChange={(event) =>
                         updateItem(item.key, { item_name: event.target.value })
                       }
@@ -205,6 +272,7 @@ export function PurchaseFormDialog({
                       type="number"
                       min={0}
                       value={item.quantity}
+                      disabled={pending}
                       onChange={(event) =>
                         updateItem(item.key, { quantity: event.target.value })
                       }
@@ -218,6 +286,7 @@ export function PurchaseFormDialog({
                       aria-label="Satuan"
                       value={item.unit}
                       placeholder="buah"
+                      disabled={pending}
                       onChange={(event) =>
                         updateItem(item.key, { unit: event.target.value })
                       }
@@ -232,6 +301,7 @@ export function PurchaseFormDialog({
                       type="number"
                       min={0}
                       value={item.unit_price}
+                      disabled={pending}
                       onChange={(event) =>
                         updateItem(item.key, { unit_price: event.target.value })
                       }
@@ -248,7 +318,7 @@ export function PurchaseFormDialog({
                   <button
                     type="button"
                     aria-label="Hapus item"
-                    disabled={items.length === 1}
+                    disabled={pending || items.length === 1}
                     onClick={() => removeItem(item.key)}
                     className="grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-danger-soft hover:text-danger disabled:pointer-events-none disabled:opacity-40 sm:justify-self-center"
                   >
@@ -265,6 +335,7 @@ export function PurchaseFormDialog({
               variant="secondary"
               size="sm"
               onClick={addItem}
+              disabled={pending}
               className="w-full sm:w-auto"
             >
               <Plus aria-hidden className="size-3.5" />
@@ -289,6 +360,7 @@ export function PurchaseFormDialog({
             rows={3}
             defaultValue={purchase?.notes ?? ""}
             placeholder="Catatan tambahan mengenai pembelian ini…"
+            disabled={pending}
           />
         </fieldset>
       </form>

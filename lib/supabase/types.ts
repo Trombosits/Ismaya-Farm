@@ -35,3 +35,17 @@ export type SaleItemUpdate = TablesUpdate<"sale_item">;
 
 export type SaleItemLivestockRow = Tables<"sale_item_livestock">;
 export type SaleItemLivestockInsert = TablesInsert<"sale_item_livestock">;
+
+export type SupplierRow = Tables<"suppliers">;
+
+export type PurchaseCategoryRow = Tables<"purchase_categories">;
+export type PurchaseCategoryInsert = TablesInsert<"purchase_categories">;
+export type PurchaseCategoryUpdate = TablesUpdate<"purchase_categories">;
+
+export type PurchaseRow = Tables<"purchases">;
+export type PurchaseInsert = TablesInsert<"purchases">;
+export type PurchaseUpdate = TablesUpdate<"purchases">;
+
+export type PurchaseItemRow = Tables<"purchase_item">;
+export type PurchaseItemInsert = TablesInsert<"purchase_item">;
+export type PurchaseItemUpdate = TablesUpdate<"purchase_item">;

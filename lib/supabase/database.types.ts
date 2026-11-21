@@ -420,6 +420,139 @@ export type Database = {
           },
         ];
       };
+      suppliers: {
+        Row: {
+          id: number;
+          name: string;
+          phone: string | null;
+          address: string | null;
+          notes: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          name: string;
+          phone?: string | null;
+          address?: string | null;
+          notes?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          name?: string;
+          phone?: string | null;
+          address?: string | null;
+          notes?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      purchase_categories: {
+        Row: {
+          id: number;
+          name: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          name: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          name?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      purchases: {
+        Row: {
+          id: number;
+          purchase_date: string;
+          supplier: string;
+          category_id: number;
+          total_amount: number;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          purchase_date: string;
+          supplier: string;
+          category_id: number;
+          total_amount?: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          purchase_date?: string;
+          supplier?: string;
+          category_id?: number;
+          total_amount?: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "purchases_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "purchase_categories";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      purchase_item: {
+        Row: {
+          id: number;
+          purchase_id: number;
+          item_name: string;
+          quantity: number;
+          unit: string;
+          unit_price: number;
+          subtotal: number;
+        };
+        Insert: {
+          id?: number;
+          purchase_id: number;
+          item_name: string;
+          quantity?: number;
+          unit: string;
+          unit_price?: number;
+          subtotal?: number;
+        };
+        Update: {
+          id?: number;
+          purchase_id?: number;
+          item_name?: string;
+          quantity?: number;
+          unit?: string;
+          unit_price?: number;
+          subtotal?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "purchase_item_purchase_id_fkey";
+            columns: ["purchase_id"];
+            isOneToOne: false;
+            referencedRelation: "purchases";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
