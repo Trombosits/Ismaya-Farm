@@ -20,7 +20,7 @@ import {
 import { livestockBatches } from "./livestock-batches";
 import type { Sale } from "./products";
 import { birthRecords, reproductionRecords } from "./reproduction";
-import { eggCollectionRecords, hatcheryBatches } from "./hatchery";
+//import { eggCollectionRecords, hatcheryBatches } from "./hatchery";
 import {
   aggregateByMonth,
   DEFAULT_PERIOD,
@@ -134,25 +134,22 @@ export function getDashboardData(sales: Sale[]): DashboardData {
   const upcomingBirths = reproductionRecords
     .map((record) => record.expected_birth_date)
     .filter(
-      (value): value is string =>
-        value !== null && value >= referenceIso,
+      (value): value is string => value !== null && value >= referenceIso,
     );
   const nearestExpected = minIso(upcomingBirths);
 
-  const runningBatches = hatcheryBatches.filter(
-    (batch) => batch.status === "incubating",
-  );
-  const eggsCollected = eggCollectionRecords.reduce(
-    (sum, record) => sum + record.quantity,
-    0,
-  );
-  const nearestHatchBatch = runningBatches
-    .filter((batch) => batch.expected_hatch_date >= referenceIso)
-    .sort((a, b) => (a.expected_hatch_date < b.expected_hatch_date ? -1 : 1))[0];
+  // const runningBatches = hatcheryBatches.filter(
+  //   (batch) => batch.status === "incubating",
+  // );
+  // const eggsCollected = eggCollectionRecords.reduce(
+  //   (sum, record) => sum + record.quantity,
+  //   0,
+  // );
+  // const nearestHatchBatch = runningBatches
+  //   .filter((batch) => batch.expected_hatch_date >= referenceIso)
+  //   .sort((a, b) => (a.expected_hatch_date < b.expected_hatch_date ? -1 : 1))[0];
 
-  const healthCutoff = new Date(
-    REFERENCE_DATE.getTime() - 30 * 86_400_000,
-  );
+  const healthCutoff = new Date(REFERENCE_DATE.getTime() - 30 * 86_400_000);
   const recentHealthCount = healthRecordList.filter(
     (record) => toDate(record.record_date) >= healthCutoff,
   ).length;
@@ -174,16 +171,16 @@ export function getDashboardData(sales: Sale[]): DashboardData {
       href: "/feed/inventory",
     });
   }
-  if (nearestHatchBatch) {
-    attention.push({
-      id: "hatchery",
-      severity: "warning",
-      title: "Penetasan",
-      description: `Batch ${nearestHatchBatch.batch_code} mendekati tanggal perkiraan menetas.`,
-      actionLabel: "Lihat Batch",
-      href: `/hatchery/batches/${nearestHatchBatch.id}`,
-    });
-  }
+  // if (nearestHatchBatch) {
+  //   attention.push({
+  //     id: "hatchery",
+  //     severity: "warning",
+  //     title: "Penetasan",
+  //     description: `Batch ${nearestHatchBatch.batch_code} mendekati tanggal perkiraan menetas.`,
+  //     actionLabel: "Lihat Batch",
+  //     href: `/hatchery/batches/${nearestHatchBatch.id}`,
+  //   });
+  // }
   if (activeMating > 0 || pregnant > 0) {
     attention.push({
       id: "reproduction",
@@ -208,8 +205,12 @@ export function getDashboardData(sales: Sale[]): DashboardData {
     (a, b) => severityWeight[a.severity] - severityWeight[b.severity],
   );
 
-  const rawActivities: { id: string; date: string; title: string; reference: string }[] =
-    [];
+  const rawActivities: {
+    id: string;
+    date: string;
+    title: string;
+    reference: string;
+  }[] = [];
 
   for (const animal of livestockList) {
     rawActivities.push({
@@ -253,14 +254,14 @@ export function getDashboardData(sales: Sale[]): DashboardData {
       reference: `${mother?.tag_code ?? "—"} — ${birth.number_of_offspring} anak`,
     });
   }
-  for (const batch of hatcheryBatches) {
-    rawActivities.push({
-      id: `hatch-${batch.id}`,
-      date: batch.start_date,
-      title: "Batch penetasan dimulai",
-      reference: batch.batch_code,
-    });
-  }
+  // for (const batch of hatcheryBatches) {
+  //   rawActivities.push({
+  //     id: `hatch-${batch.id}`,
+  //     date: batch.start_date,
+  //     title: "Batch penetasan dimulai",
+  //     reference: batch.batch_code,
+  //   });
+  // }
 
   const activities = rawActivities
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
@@ -300,15 +301,20 @@ export function getDashboardData(sales: Sale[]): DashboardData {
       },
     ],
     hatchery: [
-      { label: "Batch berjalan", value: String(runningBatches.length) },
-      { label: "Telur dikumpulkan", value: String(eggsCollected) },
-      {
-        label: "Perkiraan menetas terdekat",
-        value: nearestHatchBatch
-          ? formatShort(nearestHatchBatch.expected_hatch_date)
-          : "—",
-      },
+      { label: "Batch berjalan", value: "—" },
+      { label: "Telur dikumpulkan", value: "—" },
+      { label: "Perkiraan menetas terdekat", value: "—" },
     ],
+    // hatchery: [
+    //   { label: "Batch berjalan", value: String(runningBatches.length) },
+    //   { label: "Telur dikumpulkan", value: String(eggsCollected) },
+    //   {
+    //     label: "Perkiraan menetas terdekat",
+    //     value: nearestHatchBatch
+    //       ? formatShort(nearestHatchBatch.expected_hatch_date)
+    //       : "—",
+    //   },
+    // ],
     salesTrend,
   };
 }

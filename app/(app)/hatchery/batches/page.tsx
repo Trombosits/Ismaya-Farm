@@ -1,8 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+
+import {
+  HATCHERY_STATUS_BADGE,
+  HATCHERY_STATUS_LABEL,
+  type HatcheryBatch,
+  type HatcheryBatchStatus,
+} from "@/lib/hatchery";
+
+import {
+  getHatcheryBatches,
+  getSpeciesOptions,
+  deleteHatcheryBatch,
+} from "./actions";
+
+import { formatNumber } from "@/lib/format";
+import { formatDate } from "@/lib/livestock";
 
 import { HatcheryBatchFormDialog } from "@/components/hatchery/hatchery-batch-form-dialog";
 import {
@@ -22,19 +38,60 @@ import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TableStatePanel } from "@/components/ui/table-state-panel";
 import { TableToolbar, TableToolbarGroup } from "@/components/ui/table-toolbar";
-import {
-  HATCHERY_STATUS_BADGE,
-  HATCHERY_STATUS_LABEL,
-  hatcheryBatches,
-  type HatcheryBatch,
-  type HatcheryBatchStatus,
-} from "@/lib/hatchery";
-import { formatNumber } from "@/lib/format";
-import { formatDate, getSpeciesName } from "@/lib/livestock";
 
 const PAGE_SIZE = 10;
 
 export default function HatcheryBatchesPage() {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [batches, setBatches] = useState<HatcheryBatch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [speciesOptions, setSpeciesOptions] = useState<
+    { id: number; name: string }[]
+  >([]);
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      setError(null);
+
+      const [batchResult, speciesResult] = await Promise.all([
+        getHatcheryBatches(),
+        getSpeciesOptions(),
+      ]);
+
+      if (batchResult.success) {
+        setBatches(batchResult.data);
+      } else {
+        setError(batchResult.message);
+      }
+
+      if (speciesResult.success) {
+        setSpeciesOptions(speciesResult.data);
+      } else {
+        setError(speciesResult.message);
+      }
+
+      setLoading(false);
+    }
+
+    fetchData();
+  }, [refreshKey]);
+  async function handleDeleteBatch() {
+    if (!deleting) return;
+
+    const result = await deleteHatcheryBatch(deleting.id);
+
+    if (!result.success) {
+      setError(result.message);
+      return;
+    }
+
+    setBatches((current) =>
+      current.filter((batch) => batch.id !== deleting.id),
+    );
+
+    setDeleting(null);
+  }
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -43,14 +100,19 @@ export default function HatcheryBatchesPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<HatcheryBatch | null>(null);
   const [deleting, setDeleting] = useState<HatcheryBatch | null>(null);
-
+  const getSpeciesLabel = (speciesId: number) => {
+    return (
+      speciesOptions.find((species) => species.id === speciesId)?.name ??
+      "Jenis ternak tidak ditemukan"
+    );
+  };
   const normalized = query.trim().toLowerCase();
   const isFiltered = normalized.length > 0 || statusFilter !== "all";
-  const filtered = hatcheryBatches.filter((batch) => {
+  const filtered = batches.filter((batch) => {
     const matchesQuery =
       normalized.length === 0 ||
       batch.batch_code.toLowerCase().includes(normalized) ||
-      getSpeciesName(batch.species_id).toLowerCase().includes(normalized);
+      getSpeciesLabel(batch.species_id).toLowerCase().includes(normalized);
     const matchesStatus =
       statusFilter === "all" || batch.status === statusFilter;
     return matchesQuery && matchesStatus;
@@ -62,13 +124,13 @@ export default function HatcheryBatchesPage() {
   const searchEmpty = isFiltered && filtered.length === 0;
 
   const incubating = filtered.filter((batch) => batch.status === "incubating");
-  const nearestHatch = incubating.reduce<string | null>(
-    (min, batch) =>
-      min === null || batch.expected_hatch_date < min
-        ? batch.expected_hatch_date
-        : min,
-    null,
-  );
+  const nearestHatch = incubating.reduce<string | null>((min, batch) => {
+    const date = batch.expected_hatch_date;
+
+    if (!date) return min;
+
+    return min === null || date < min ? date : min;
+  }, null);
 
   return (
     <div className="flex flex-col gap-5">
@@ -120,13 +182,13 @@ export default function HatcheryBatchesPage() {
               }}
             >
               <option value="all">Semua Status</option>
-              {(Object.keys(HATCHERY_STATUS_LABEL) as HatcheryBatchStatus[]).map(
-                (status) => (
-                  <option key={status} value={status}>
-                    {HATCHERY_STATUS_LABEL[status]}
-                  </option>
-                ),
-              )}
+              {(
+                Object.keys(HATCHERY_STATUS_LABEL) as HatcheryBatchStatus[]
+              ).map((status) => (
+                <option key={status} value={status}>
+                  {HATCHERY_STATUS_LABEL[status]}
+                </option>
+              ))}
             </Select>
           </div>
         </TableToolbarGroup>
@@ -134,6 +196,14 @@ export default function HatcheryBatchesPage() {
           <TableStatePreview value={viewState} onChange={setViewState} />
         </TableToolbarGroup>
       </TableToolbar>
+
+      {loading ? (
+        <p className="text-sm text-muted">Memuat data batch...</p>
+      ) : null}
+
+      {error ? (
+        <p className="text-sm text-red-600">Gagal memuat data: {error}</p>
+      ) : null}
 
       <TableStatePanel
         state={viewState}
@@ -182,7 +252,7 @@ export default function HatcheryBatchesPage() {
                     {batch.batch_code}
                   </button>
                 </TD>
-                <TD>{getSpeciesName(batch.species_id)}</TD>
+                <TD>{getSpeciesLabel(batch.species_id)}</TD>
                 <TD className="whitespace-nowrap text-xs text-muted">
                   {formatDate(batch.start_date)}
                 </TD>
@@ -190,7 +260,9 @@ export default function HatcheryBatchesPage() {
                   {formatNumber(batch.egg_quantity)}
                 </TD>
                 <TD className="hidden whitespace-nowrap text-xs text-muted md:table-cell">
-                  {formatDate(batch.expected_hatch_date)}
+                  {batch.expected_hatch_date
+                    ? formatDate(batch.expected_hatch_date)
+                    : "—"}
                 </TD>
                 <TD>
                   <Badge variant={HATCHERY_STATUS_BADGE[batch.status]}>
@@ -215,7 +287,9 @@ export default function HatcheryBatchesPage() {
         <HatcheryBatchFormDialog
           open
           mode="create"
+          speciesOptions={speciesOptions}
           onClose={() => setAddOpen(false)}
+          onSuccess={() => setRefreshKey((current) => current + 1)}
         />
       ) : null}
 
@@ -224,7 +298,9 @@ export default function HatcheryBatchesPage() {
           open
           mode="edit"
           batch={editing}
+          speciesOptions={speciesOptions}
           onClose={() => setEditing(null)}
+          onSuccess={() => setRefreshKey((current) => current + 1)}
         />
       ) : null}
 
@@ -236,7 +312,7 @@ export default function HatcheryBatchesPage() {
           description={`Apakah Anda yakin ingin menghapus batch "${deleting.batch_code}"?`}
           confirmLabel="Hapus"
           onClose={() => setDeleting(null)}
-          onConfirm={() => setDeleting(null)}
+          onConfirm={handleDeleteBatch}
         />
       ) : null}
     </div>
