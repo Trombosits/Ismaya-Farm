@@ -39,28 +39,23 @@ interface SpeciesOption {
 }
 
 export default function EggCollectionPage() {
-  // Data dari database
   const [records, setRecords] = useState<EggCollectionRecord[]>([]);
   const [speciesOptions, setSpeciesOptions] = useState<SpeciesOption[]>([]);
 
-  // State halaman
   const [query, setQuery] = useState("");
   const [speciesFilter, setSpeciesFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [viewState, setViewState] = useState<TableViewState>("data");
 
-  // State dialog
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<EggCollectionRecord | null>(null);
   const [deleting, setDeleting] = useState<EggCollectionRecord | null>(null);
 
-  // State proses
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deletingLoading, setDeletingLoading] = useState(false);
 
-  // Mengambil nama jenis ternak berdasarkan species_id
   const getSpeciesLabel = (speciesId: number | string) => {
     return (
       speciesOptions.find((species) => species.id === Number(speciesId))
@@ -68,7 +63,6 @@ export default function EggCollectionPage() {
     );
   };
 
-  // Memuat data pengumpulan telur dan jenis ternak
   const loadRecords = useCallback(async () => {
     setLoading(true);
     setLoadError("");
@@ -108,12 +102,10 @@ export default function EggCollectionPage() {
     }
   }, []);
 
-  // Memuat data ketika halaman pertama kali dibuka
   useEffect(() => {
     loadRecords();
   }, [loadRecords]);
 
-  // Pencarian dan filter
   const normalized = query.trim().toLowerCase();
 
   const isFiltered = normalized.length > 0 || speciesFilter !== "all";
@@ -130,7 +122,6 @@ export default function EggCollectionPage() {
     return matchesQuery && matchesSpecies;
   });
 
-  // Pagination
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
   const safePage = Math.min(page, pageCount);
@@ -139,7 +130,6 @@ export default function EggCollectionPage() {
 
   const searchEmpty = isFiltered && filtered.length === 0;
 
-  // Ringkasan data
   const totalEggs = filtered.reduce(
     (sum, record) => sum + Number(record.quantity),
     0,
@@ -156,7 +146,6 @@ export default function EggCollectionPage() {
     null,
   );
 
-  // Menghapus data pengumpulan telur
   async function handleDelete() {
     if (!deleting) return;
 
@@ -197,7 +186,6 @@ export default function EggCollectionPage() {
         }
       />
 
-      {/* Pesan error */}
       {(loadError || deleteError) && (
         <div
           role="alert"
@@ -207,7 +195,6 @@ export default function EggCollectionPage() {
         </div>
       )}
 
-      {/* Ringkasan */}
       <SummaryCards columns={2}>
         <SummaryCard
           label="Total Telur Dikumpulkan"
@@ -222,7 +209,6 @@ export default function EggCollectionPage() {
 
       <DataSectionHeading title="Daftar Pengumpulan Telur" />
 
-      {/* Toolbar pencarian dan filter */}
       <TableToolbar>
         <TableToolbarGroup className="sm:flex-1">
           <SearchInput
@@ -261,7 +247,6 @@ export default function EggCollectionPage() {
         </TableToolbarGroup>
       </TableToolbar>
 
-      {/* Tabel data */}
       <TableStatePanel
         state={loading ? "loading" : loadError ? "error" : viewState}
         onRetry={loadRecords}
@@ -331,7 +316,6 @@ export default function EggCollectionPage() {
         </Table>
       </TableStatePanel>
 
-      {/* Dialog tambah */}
       {addOpen && (
         <EggCollectionFormDialog
           open
@@ -341,7 +325,6 @@ export default function EggCollectionPage() {
         />
       )}
 
-      {/* Dialog edit */}
       {editing && (
         <EggCollectionFormDialog
           open
@@ -352,7 +335,6 @@ export default function EggCollectionPage() {
         />
       )}
 
-      {/* Dialog hapus */}
       {deleting && (
         <ConfirmDialog
           open
