@@ -24,10 +24,8 @@ import {
   getPurchaseCategoryName,
   getPurchaseItemsByPurchase,
   getPurchaseTotal,
-  getSupplierName,
   purchaseCategories,
   purchases,
-  suppliers,
 } from "@/lib/purchases";
 import {
   aggregateByMonth,
@@ -47,12 +45,20 @@ export default function PurchasesReportPage() {
 
   const range = resolvePeriod(period);
 
+  const supplierOptions = Array.from(
+    new Set(
+      purchases
+        .map((purchase) => purchase.supplier.trim())
+        .filter((name) => name.length > 0),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "id"));
+
   const filtered = purchases.filter((purchase) => {
     const matchesPeriod = withinRange(purchase.purchase_date, range);
     const matchesCategory =
       categoryFilter === "all" || purchase.category_id === categoryFilter;
     const matchesSupplier =
-      supplierFilter === "all" || purchase.supplier_id === supplierFilter;
+      supplierFilter === "all" || purchase.supplier === supplierFilter;
     return matchesPeriod && matchesCategory && matchesSupplier;
   });
 
@@ -117,9 +123,9 @@ export default function PurchasesReportPage() {
               onChange={(event) => setSupplierFilter(event.target.value)}
             >
               <option value="all">Semua Supplier</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
+              {supplierOptions.map((supplier) => (
+                <option key={supplier} value={supplier}>
+                  {supplier}
                 </option>
               ))}
             </Select>
@@ -178,9 +184,7 @@ export default function PurchasesReportPage() {
                   <TD className="whitespace-nowrap text-xs text-muted">
                     {formatDate(purchase.purchase_date)}
                   </TD>
-                  <TD className="font-medium">
-                    {getSupplierName(purchase.supplier_id)}
-                  </TD>
+                  <TD className="font-medium">{purchase.supplier || "—"}</TD>
                   <TD className="text-muted">
                     {getPurchaseCategoryName(purchase.category_id)}
                   </TD>
