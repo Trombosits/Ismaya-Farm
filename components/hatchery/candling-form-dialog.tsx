@@ -1,11 +1,19 @@
 "use client";
 
+import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+
+import {
+  createCandlingRecord,
+  updateCandlingRecord,
+} from "@/app/(app)/hatchery/batches/actions";
+
 import type { HatcheryCandlingRecord } from "@/lib/hatchery";
 
 interface CandlingFormDialogProps {
@@ -26,6 +34,40 @@ export function CandlingFormDialog({
   const isEdit = mode === "edit";
   const formId = "candling-form";
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      const result =
+        isEdit && record
+          ? await updateCandlingRecord(record.id, formData)
+          : await createCandlingRecord(formData);
+
+      if (!result.success) {
+        setErrorMessage(result.message);
+        return;
+      }
+
+      onClose();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat menyimpan data candling.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <Dialog
       open={open}
@@ -42,21 +84,15 @@ export function CandlingFormDialog({
           <Button variant="secondary" size="sm" onClick={onClose}>
             Batal
           </Button>
-          <Button type="submit" form={formId} size="sm">
-            Simpan
+          <Button type="submit" form={formId} size="sm" disabled={isSubmitting}>
+            {isSubmitting ? "Menyimpan..." : "Simpan"}
           </Button>
         </>
       }
     >
-      <form
-        id={formId}
-        onSubmit={(event) => {
-          event.preventDefault();
-          onClose();
-        }}
-        className="flex flex-col gap-4"
-      >
-        <input type="hidden" name="batch_id" defaultValue={batchId} />
+      <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <input type="hidden" name="batch_id" value={batchId} />
+
         <FormSection title="Data Candling">
           <Field label="Tanggal Candling" htmlFor="hc-date" required>
             <Input
@@ -64,8 +100,10 @@ export function CandlingFormDialog({
               name="candling_date"
               type="date"
               defaultValue={record?.candling_date ?? ""}
+              required
             />
           </Field>
+
           <Field label="Umur Hari" htmlFor="hc-age" required>
             <Input
               id="hc-age"
@@ -73,8 +111,10 @@ export function CandlingFormDialog({
               type="number"
               min={0}
               defaultValue={record?.age_days ?? ""}
+              required
             />
           </Field>
+
           <Field label="Fertile" htmlFor="hc-fertile" required>
             <Input
               id="hc-fertile"
@@ -82,8 +122,10 @@ export function CandlingFormDialog({
               type="number"
               min={0}
               defaultValue={record?.fertile_count ?? ""}
+              required
             />
           </Field>
+
           <Field label="Infertile" htmlFor="hc-infertile" required>
             <Input
               id="hc-infertile"
@@ -91,8 +133,10 @@ export function CandlingFormDialog({
               type="number"
               min={0}
               defaultValue={record?.infertile_count ?? ""}
+              required
             />
           </Field>
+
           <Field label="Embrio Mati" htmlFor="hc-dead" required>
             <Input
               id="hc-dead"
@@ -100,6 +144,7 @@ export function CandlingFormDialog({
               type="number"
               min={0}
               defaultValue={record?.dead_embryo_count ?? ""}
+              required
             />
           </Field>
         </FormSection>
@@ -108,6 +153,7 @@ export function CandlingFormDialog({
           <legend className="text-[11px] font-semibold tracking-wider text-subtle uppercase">
             Catatan
           </legend>
+
           <Textarea
             name="notes"
             aria-label="Catatan"
@@ -116,6 +162,12 @@ export function CandlingFormDialog({
             placeholder="Catatan tambahan mengenai candling…"
           />
         </fieldset>
+
+        {errorMessage && (
+          <p className="text-sm text-red-500" role="alert">
+            {errorMessage}
+          </p>
+        )}
       </form>
     </Dialog>
   );

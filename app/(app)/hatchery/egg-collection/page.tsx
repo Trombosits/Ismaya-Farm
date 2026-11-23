@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { EggCollectionFormDialog } from "@/components/hatchery/egg-collection-form-dialog";
@@ -20,48 +20,158 @@ import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TableStatePanel } from "@/components/ui/table-state-panel";
 import { TableToolbar, TableToolbarGroup } from "@/components/ui/table-toolbar";
-import {
-  eggCollectionRecords,
-  type EggCollectionRecord,
-} from "@/lib/hatchery";
+
+import type { EggCollectionRecord } from "@/lib/hatchery";
 import { formatNumber } from "@/lib/format";
-import { formatDate, getSpeciesName, speciesList } from "@/lib/livestock";
+import { formatDate } from "@/lib/livestock";
+
+import {
+  deleteEggCollectionRecord,
+  getEggCollectionRecords,
+  getSpeciesOptions,
+} from "@/app/(app)/hatchery/batches/actions";
 
 const PAGE_SIZE = 10;
 
+interface SpeciesOption {
+  id: number;
+  name: string;
+}
+
 export default function EggCollectionPage() {
+  const [records, setRecords] = useState<EggCollectionRecord[]>([]);
+  const [speciesOptions, setSpeciesOptions] = useState<SpeciesOption[]>([]);
+
   const [query, setQuery] = useState("");
   const [speciesFilter, setSpeciesFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [viewState, setViewState] = useState<TableViewState>("data");
+
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<EggCollectionRecord | null>(null);
   const [deleting, setDeleting] = useState<EggCollectionRecord | null>(null);
 
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingLoading, setDeletingLoading] = useState(false);
+
+  const getSpeciesLabel = (speciesId: number | string) => {
+    return (
+      speciesOptions.find((species) => species.id === Number(speciesId))
+        ?.name ?? "Jenis ternak tidak ditemukan"
+    );
+  };
+
+  const loadRecords = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+
+    try {
+      const [recordsResult, speciesResult] = await Promise.all([
+        getEggCollectionRecords(),
+        getSpeciesOptions(),
+      ]);
+
+      if (!recordsResult.success) {
+        setLoadError(recordsResult.message);
+        return;
+      }
+
+      if (!speciesResult.success) {
+        setLoadError(speciesResult.message);
+        return;
+      }
+
+      setRecords(recordsResult.data as EggCollectionRecord[]);
+
+      setSpeciesOptions(
+        speciesResult.data.map((species) => ({
+          id: Number(species.id),
+          name: species.name,
+        })),
+      );
+    } catch (error) {
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Gagal memuat data pengumpulan telur.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRecords();
+  }, [loadRecords]);
+
   const normalized = query.trim().toLowerCase();
+
   const isFiltered = normalized.length > 0 || speciesFilter !== "all";
-  const filtered = eggCollectionRecords.filter((record) => {
+
+  const filtered = records.filter((record) => {
+    const speciesName = getSpeciesLabel(record.species_id);
+
     const matchesQuery =
-      normalized.length === 0 ||
-      getSpeciesName(record.species_id).toLowerCase().includes(normalized);
+      normalized.length === 0 || speciesName.toLowerCase().includes(normalized);
+
     const matchesSpecies =
-      speciesFilter === "all" || record.species_id === speciesFilter;
+      speciesFilter === "all" || String(record.species_id) === speciesFilter;
+
     return matchesQuery && matchesSpecies;
   });
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
   const safePage = Math.min(page, pageCount);
+
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   const searchEmpty = isFiltered && filtered.length === 0;
 
-  const totalEggs = filtered.reduce((sum, record) => sum + record.quantity, 0);
+  const totalEggs = filtered.reduce(
+    (sum, record) => sum + Number(record.quantity),
+    0,
+  );
+
   const latestCollectionDate = filtered.reduce<string | null>(
-    (max, record) =>
-      max === null || record.collection_date > max
-        ? record.collection_date
-        : max,
+    (latest, record) => {
+      if (latest === null || record.collection_date > latest) {
+        return record.collection_date;
+      }
+
+      return latest;
+    },
     null,
   );
+
+  async function handleDelete() {
+    if (!deleting) return;
+
+    setDeletingLoading(true);
+    setDeleteError("");
+
+    try {
+      const result = await deleteEggCollectionRecord(Number(deleting.id));
+
+      if (!result.success) {
+        setDeleteError(result.message);
+        return;
+      }
+
+      setDeleting(null);
+      await loadRecords();
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Gagal menghapus data pengumpulan telur.",
+      );
+    } finally {
+      setDeletingLoading(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -76,11 +186,21 @@ export default function EggCollectionPage() {
         }
       />
 
+      {(loadError || deleteError) && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600"
+        >
+          {loadError || deleteError}
+        </div>
+      )}
+
       <SummaryCards columns={2}>
         <SummaryCard
           label="Total Telur Dikumpulkan"
           value={formatNumber(totalEggs)}
         />
+
         <SummaryCard
           label="Pengumpulan Terakhir"
           value={latestCollectionDate ? formatDate(latestCollectionDate) : "—"}
@@ -101,6 +221,7 @@ export default function EggCollectionPage() {
             aria-label="Cari pengumpulan telur berdasarkan jenis ternak"
             className="w-full sm:max-w-xs"
           />
+
           <div className="w-full sm:w-48">
             <Select
               aria-label="Filter jenis ternak"
@@ -111,22 +232,24 @@ export default function EggCollectionPage() {
               }}
             >
               <option value="all">Semua Jenis Ternak</option>
-              {speciesList.map((species) => (
-                <option key={species.id} value={species.id}>
+
+              {speciesOptions.map((species) => (
+                <option key={species.id} value={String(species.id)}>
                   {species.name}
                 </option>
               ))}
             </Select>
           </div>
         </TableToolbarGroup>
+
         <TableToolbarGroup>
           <TableStatePreview value={viewState} onChange={setViewState} />
         </TableToolbarGroup>
       </TableToolbar>
 
       <TableStatePanel
-        state={viewState}
-        onRetry={() => setViewState("data")}
+        state={loading ? "loading" : loadError ? "error" : viewState}
+        onRetry={loadRecords}
         columns={5}
         searchEmpty={searchEmpty}
         emptyTitle="Belum ada data pengumpulan telur"
@@ -157,26 +280,34 @@ export default function EggCollectionPage() {
               <TH className="w-14 text-right">Aksi</TH>
             </tr>
           </THead>
+
           <TBody>
             {rows.map((record) => (
               <TR key={record.id}>
                 <TD className="whitespace-nowrap text-xs text-muted">
                   {formatDate(record.collection_date)}
                 </TD>
+
                 <TD className="font-medium">
-                  {getSpeciesName(record.species_id)}
+                  {getSpeciesLabel(record.species_id)}
                 </TD>
+
                 <TD className="text-right font-medium">
-                  {formatNumber(record.quantity)}
+                  {formatNumber(Number(record.quantity))}
                 </TD>
+
                 <TD className="max-w-56 truncate text-xs text-muted">
                   {record.notes || "—"}
                 </TD>
+
                 <TD>
                   <RowActions
                     label="Aksi pengumpulan telur"
                     onEdit={() => setEditing(record)}
-                    onDelete={() => setDeleting(record)}
+                    onDelete={() => {
+                      setDeleteError("");
+                      setDeleting(record);
+                    }}
                   />
                 </TD>
               </TR>
@@ -185,34 +316,40 @@ export default function EggCollectionPage() {
         </Table>
       </TableStatePanel>
 
-      {addOpen ? (
+      {addOpen && (
         <EggCollectionFormDialog
           open
           mode="create"
           onClose={() => setAddOpen(false)}
+          onSaved={loadRecords}
         />
-      ) : null}
+      )}
 
-      {editing ? (
+      {editing && (
         <EggCollectionFormDialog
           open
           mode="edit"
           record={editing}
           onClose={() => setEditing(null)}
+          onSaved={loadRecords}
         />
-      ) : null}
+      )}
 
-      {deleting ? (
+      {deleting && (
         <ConfirmDialog
           open
           destructive
           title="Hapus Pengumpulan Telur?"
           description="Apakah Anda yakin ingin menghapus data pengumpulan telur ini?"
           confirmLabel="Hapus"
-          onClose={() => setDeleting(null)}
-          onConfirm={() => setDeleting(null)}
+          onClose={() => {
+            if (!deletingLoading) {
+              setDeleting(null);
+            }
+          }}
+          onConfirm={handleDelete}
         />
-      ) : null}
+      )}
     </div>
   );
 }
