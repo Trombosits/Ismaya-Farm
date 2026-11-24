@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, SearchX } from "lucide-react";
 
 import { SpeciesFormDialog } from "@/components/livestock/species-form-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,7 +16,12 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TableToolbar, TableToolbarGroup } from "@/components/ui/table-toolbar";
 import { deleteSpecies } from "@/lib/actions/species";
-import { formatDate } from "@/lib/livestock";
+import {
+  REPRODUCTION_TYPE_BADGE,
+  REPRODUCTION_TYPE_LABEL,
+  type ReproductionType,
+  formatDate,
+} from "@/lib/livestock";
 import type { SpeciesRow } from "@/lib/supabase/types";
 
 const PAGE_SIZE = 10;
@@ -111,34 +117,50 @@ export function SpeciesList({ species }: { species: SpeciesRow[] }) {
             <tr>
               <TH className="w-24">Kode</TH>
               <TH>Nama</TH>
+              <TH>Cara Reproduksi</TH>
               <TH className="hidden md:table-cell">Dibuat</TH>
               <TH className="hidden lg:table-cell">Diperbarui</TH>
               <TH className="w-14 text-right">Aksi</TH>
             </tr>
           </THead>
           <TBody>
-            {rows.map((entry) => (
-              <TR key={entry.id}>
-                <TD className="font-mono text-xs text-muted">{entry.code}</TD>
-                <TD className="font-medium">{entry.name}</TD>
-                <TD className="hidden text-xs text-muted md:table-cell">
-                  {formatDate(entry.created_at)}
-                </TD>
-                <TD className="hidden text-xs text-muted lg:table-cell">
-                  {formatDate(entry.updated_at)}
-                </TD>
-                <TD>
-                  <RowActions
-                    label={`Aksi untuk ${entry.name}`}
-                    onEdit={() => setEditing(entry)}
-                    onDelete={() => {
-                      setDeleteError(null);
-                      setDeleting(entry);
-                    }}
-                  />
-                </TD>
-              </TR>
-            ))}
+            {rows.map((entry) => {
+              const reproductionType = entry.reproduction_types as
+                | ReproductionType
+                | null;
+
+              return (
+                <TR key={entry.id}>
+                  <TD className="font-mono text-xs text-muted">{entry.code}</TD>
+                  <TD className="font-medium">{entry.name}</TD>
+                  <TD>
+                    {reproductionType ? (
+                      <Badge variant={REPRODUCTION_TYPE_BADGE[reproductionType]}>
+                        {REPRODUCTION_TYPE_LABEL[reproductionType]}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted">—</span>
+                    )}
+                  </TD>
+                  <TD className="hidden text-xs text-muted md:table-cell">
+                    {formatDate(entry.created_at)}
+                  </TD>
+                  <TD className="hidden text-xs text-muted lg:table-cell">
+                    {formatDate(entry.updated_at)}
+                  </TD>
+                  <TD>
+                    <RowActions
+                      label={`Aksi untuk ${entry.name}`}
+                      onEdit={() => setEditing(entry)}
+                      onDelete={() => {
+                        setDeleteError(null);
+                        setDeleting(entry);
+                      }}
+                    />
+                  </TD>
+                </TR>
+              );
+            })}
           </TBody>
         </Table>
       )}

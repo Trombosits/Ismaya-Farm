@@ -38,7 +38,6 @@ interface BulkFields {
   breedId: string;
   sex: string;
   count: string;
-  prefix: string;
   startNumber: string;
 }
 
@@ -47,7 +46,6 @@ const INITIAL: BulkFields = {
   breedId: "",
   sex: "female",
   count: "",
-  prefix: "",
   startNumber: "1",
 };
 
@@ -61,7 +59,6 @@ export function BulkAddDialog({
   const [step, setStep] = useState<"form" | "preview">("form");
   const [submitted, setSubmitted] = useState(false);
   const [fields, setFields] = useState<BulkFields>(INITIAL);
-  const [prefixEdited, setPrefixEdited] = useState(false);
   const [startEdited, setStartEdited] = useState(false);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -80,6 +77,14 @@ export function BulkAddDialog({
     breedList.find((breed) => String(breed.id) === String(fields.breedId))
       ?.name ?? "—";
 
+  // Prefix kode selalu mengikuti jenis ternak yang dipilih.
+  const prefix = (
+    speciesList.find((species) => String(species.id) === String(fields.speciesId))
+      ?.code ?? ""
+  )
+    .trim()
+    .toUpperCase();
+
   const count = Number(fields.count);
   const start = Number(fields.startNumber);
 
@@ -91,16 +96,15 @@ export function BulkAddDialog({
     errors.count = "Jumlah harus lebih dari 0.";
   else if (count > 1000)
     errors.count = "Jumlah maksimal 1000 per proses massal.";
-  if (!fields.prefix.trim()) errors.prefix = "Prefix kode wajib diisi.";
   if (!Number.isInteger(start) || start < 1)
     errors.startNumber = "Nomor mulai minimal 1.";
 
   const hasErrors = Object.keys(errors).length > 0;
 
   const codes =
-    !hasErrors && Number.isFinite(count)
+    !hasErrors && prefix && Number.isFinite(count)
       ? Array.from({ length: count }, (_, index) =>
-          buildCode(fields.prefix, start + index),
+          buildCode(prefix, start + index),
         )
       : [];
 
@@ -111,18 +115,17 @@ export function BulkAddDialog({
     setFields((current) => ({ ...current, ...patch }));
   }
 
-  // Prefix mengikuti kode jenis ternak & nomor mulai mengikuti nomor terkecil
-  // yang belum terpakai, selama pengguna belum mengubahnya sendiri.
+  // Nomor mulai mengikuti nomor terkecil yang belum terpakai, selama pengguna
+  // belum mengubahnya sendiri.
   function handleSpeciesChange(speciesId: string) {
     const species = speciesList.find(
       (item) => String(item.id) === speciesId,
     );
-    const prefix = species?.code ?? "";
+    const nextPrefix = (species?.code ?? "").trim().toUpperCase();
     const patch: Partial<BulkFields> = { speciesId, breedId: "" };
 
-    if (!prefixEdited) patch.prefix = prefix;
-    if (!startEdited && prefix) {
-      patch.startNumber = String(nextTagNumber(prefix, existingTags));
+    if (!startEdited && nextPrefix) {
+      patch.startNumber = String(nextTagNumber(nextPrefix, existingTags));
     }
 
     update(patch);
@@ -144,7 +147,6 @@ export function BulkAddDialog({
     formData.set("breed_id", fields.breedId);
     formData.set("sex", fields.sex);
     formData.set("count", fields.count);
-    formData.set("prefix", fields.prefix);
     formData.set("start_number", fields.startNumber);
 
     setState(null);
@@ -290,40 +292,40 @@ export function BulkAddDialog({
               />
             </Field>
             <Field
-              label="Prefix Kode"
-              htmlFor="bulk-prefix"
-              required
-              error={submitted ? errors.prefix : undefined}
-              hint="Contoh: KMB → KMB-001"
-            >
-              <Input
-                id="bulk-prefix"
-                value={fields.prefix}
-                onChange={(event) => {
-                  update({ prefix: event.target.value });
-                  setPrefixEdited(true);
-                }}
-                placeholder="KMB"
-                autoComplete="off"
-                className="font-mono uppercase"
-              />
-            </Field>
-            <Field
-              label="Nomor Mulai"
+              label="Nomor Tag"
               htmlFor="bulk-start"
               required
               error={submitted ? errors.startNumber : undefined}
+              hint={
+                prefix
+                  ? "Kode jenis ternak terkunci; hanya nomor awal yang dapat diubah."
+                  : "Pilih jenis ternak untuk mengunci kode awal."
+              }
             >
-              <Input
-                id="bulk-start"
-                type="number"
-                min={1}
-                value={fields.startNumber}
-                onChange={(event) => {
-                  update({ startNumber: event.target.value });
-                  setStartEdited(true);
-                }}
-              />
+              <div className="flex items-stretch">
+                <span
+                  aria-hidden
+                  className="flex h-9 items-center rounded-l-md border border-r-0 border-border-strong bg-panel px-2.5 font-mono text-sm text-muted"
+                >
+                  {prefix || "—"}-
+                </span>
+                <Input
+                  id="bulk-start"
+                  inputMode="numeric"
+                  value={fields.startNumber}
+                  onChange={(event) => {
+                    update({
+                      startNumber: event.target.value.replace(/\D/g, ""),
+                    });
+                    setStartEdited(true);
+                  }}
+                  placeholder="001"
+                  autoComplete="off"
+                  maxLength={6}
+                  className="rounded-l-none font-mono"
+                  disabled={!prefix}
+                />
+              </div>
             </Field>
           </FormSection>
 
@@ -377,8 +379,8 @@ export function BulkAddDialog({
               <p className="text-xs leading-relaxed text-danger">
                 Ditemukan {conflicts.length} kode yang sudah digunakan (
                 {conflicts.slice(0, 5).join(", ")}
-                {conflicts.length > 5 ? ", …" : ""}). Sesuaikan prefix atau
-                nomor mulai agar tidak duplikat.
+                {conflicts.length > 5 ? ", …" : ""}). Sesuaikan nomor awal agar
+                tidak duplikat.
               </p>
             </div>
           ) : (

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { buildNextTagCode, formatTagCode } from "@/lib/livestock";
+import { formatTagCode, nextTagNumber } from "@/lib/livestock";
 import { createClient } from "@/lib/supabase/server";
 
 import type { ActionState } from "./types";
@@ -52,24 +52,21 @@ const optionalId = () =>
     z.number().int().positive().nullable(),
   );
 
-const optionalTagCode = z.preprocess(
+const optionalTagNumber = z.preprocess(
   (value) => {
     const text = String(value ?? "").trim();
-    return text === "" ? null : text;
+    return text === "" ? null : Number(text);
   },
   z
-    .string()
-    .max(30, "Tag code maksimal 30 karakter.")
-    .regex(
-      /^[A-Za-z0-9-]+$/,
-      "Tag code hanya boleh huruf, angka, dan tanda hubung.",
-    )
-    .transform((value) => value.toUpperCase())
+    .number({ message: "Nomor tag hanya boleh angka." })
+    .int("Nomor tag hanya boleh angka.")
+    .min(1, "Nomor tag minimal 1.")
+    .max(999999, "Nomor tag maksimal 999999.")
     .nullable(),
 );
 
 const livestockSchema = z.object({
-  tag_code: optionalTagCode,
+  tag_number: optionalTagNumber,
   species_id: requiredId("Jenis ternak wajib dipilih."),
   breed_id: optionalId(),
   sex: z.enum(["male", "female"], {
@@ -109,16 +106,6 @@ const bulkSchema = z.object({
       .min(1, "Jumlah minimal 1.")
       .max(1000, "Jumlah maksimal 1000 per proses massal."),
   ),
-  prefix: z
-    .string()
-    .trim()
-    .min(1, "Prefix kode wajib diisi.")
-    .max(20, "Prefix maksimal 20 karakter.")
-    .regex(
-      /^[A-Za-z0-9]+$/,
-      "Prefix hanya boleh huruf dan angka.",
-    )
-    .transform((value) => value.toUpperCase()),
   start_number: z.preprocess(
     (value) => {
       const parsed = Number(value);
@@ -144,7 +131,7 @@ function mapWriteError(error: { code?: string; message: string }): ActionState {
     return {
       ok: false,
       message: "Tag code sudah digunakan.",
-      fieldErrors: { tag_code: "Tag code sudah digunakan." },
+      fieldErrors: { tag_number: "Nomor tag sudah digunakan." },
     };
   }
   if (error.code === "23503") {
@@ -159,7 +146,7 @@ function mapWriteError(error: { code?: string; message: string }): ActionState {
 
 function parse(formData: FormData) {
   return livestockSchema.safeParse({
-    tag_code: String(formData.get("tag_code") ?? ""),
+    tag_number: String(formData.get("tag_number") ?? ""),
     species_id: formData.get("species_id"),
     breed_id: formData.get("breed_id"),
     sex: String(formData.get("sex") ?? ""),
@@ -174,17 +161,16 @@ function parse(formData: FormData) {
 }
 
 /**
- * Menentukan Tag Code final. Bila form mengirim tag kosong, kode dibentuk dari
- * kode jenis ternak + nomor urut terkecil yang belum terpakai di database.
+ * Membentuk Tag Code final. Prefix selalu diambil dari kode jenis ternak,
+ * sehingga pengguna hanya menentukan nomor urutnya. Bila nomor kosong, dipakai
+ * nomor urut terkecil yang belum terpakai di database.
  */
 async function resolveTagCode(
   supabase: Supabase,
-  tagCode: string | null,
+  tagNumber: number | null,
   speciesId: number,
   excludeId?: number,
 ): Promise<string | null> {
-  if (tagCode) return tagCode;
-
   const { data: species, error: speciesError } = await supabase
     .from("livestock_species")
     .select("code")
@@ -192,6 +178,10 @@ async function resolveTagCode(
     .maybeSingle();
 
   if (speciesError || !species?.code) return null;
+
+  if (tagNumber !== null) {
+    return formatTagCode(species.code, tagNumber);
+  }
 
   let query = supabase.from("livestock").select("tag_code");
   if (excludeId !== undefined) query = query.neq("id", excludeId);
@@ -203,7 +193,7 @@ async function resolveTagCode(
     .map((row) => row.tag_code)
     .filter((code): code is string => Boolean(code));
 
-  return buildNextTagCode(species.code, existing) || null;
+  return formatTagCode(species.code, nextTagNumber(species.code, existing));
 }
 
 function buildCode(prefix: string, value: number): string {
@@ -222,24 +212,25 @@ export async function createLivestock(
     };
   }
 
+  const { tag_number, ...values } = parsed.data;
   const supabase = await createClient();
   const tagCode = await resolveTagCode(
     supabase,
-    parsed.data.tag_code,
-    parsed.data.species_id,
+    tag_number,
+    values.species_id,
   );
 
   if (!tagCode) {
     return {
       ok: false,
-      message: "Tag code gagal dibuat otomatis. Isi tag code secara manual.",
-      fieldErrors: { tag_code: "Tag code wajib diisi." },
+      message: "Tag code gagal dibuat. Periksa jenis ternak yang dipilih.",
+      fieldErrors: { tag_number: "Tag code gagal dibuat." },
     };
   }
 
   const { error } = await supabase
     .from("livestock")
-    .insert({ ...parsed.data, tag_code: tagCode });
+    .insert({ ...values, tag_code: tagCode });
 
   if (error) return mapWriteError(error);
 
@@ -264,19 +255,28 @@ export async function updateLivestock(
     };
   }
 
+  const { tag_number, ...values } = parsed.data;
   const supabase = await createClient();
   const tagCode = await resolveTagCode(
     supabase,
-    parsed.data.tag_code,
-    parsed.data.species_id,
+    tag_number,
+    values.species_id,
     id,
   );
+
+  if (!tagCode) {
+    return {
+      ok: false,
+      message: "Tag code gagal dibuat. Periksa jenis ternak yang dipilih.",
+      fieldErrors: { tag_number: "Tag code gagal dibuat." },
+    };
+  }
 
   const { error } = await supabase
     .from("livestock")
     .update({
-      ...parsed.data,
-      tag_code: tagCode ?? parsed.data.tag_code ?? undefined,
+      ...values,
+      tag_code: tagCode,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
@@ -301,7 +301,6 @@ export async function createLivestockBulk(
     breed_id: formData.get("breed_id"),
     sex: String(formData.get("sex") ?? ""),
     count: formData.get("count"),
-    prefix: String(formData.get("prefix") ?? ""),
     start_number: formData.get("start_number"),
   });
 
@@ -313,11 +312,25 @@ export async function createLivestockBulk(
     };
   }
 
-  const { species_id, breed_id, sex, count, prefix, start_number } =
-    parsed.data;
+  const { species_id, breed_id, sex, count, start_number } = parsed.data;
+
+  const supabase = await createClient();
+  const { data: species, error: speciesError } = await supabase
+    .from("livestock_species")
+    .select("code")
+    .eq("id", species_id)
+    .maybeSingle();
+
+  if (speciesError || !species?.code) {
+    return {
+      ok: false,
+      message: "Jenis ternak tidak ditemukan.",
+      fieldErrors: { species_id: "Jenis ternak tidak ditemukan." },
+    };
+  }
 
   const rows = Array.from({ length: count }, (_, index) => ({
-    tag_code: buildCode(prefix, start_number + index),
+    tag_code: buildCode(species.code, start_number + index),
     species_id,
     breed_id,
     sex,
@@ -328,7 +341,6 @@ export async function createLivestockBulk(
     notes: null,
   }));
 
-  const supabase = await createClient();
   const { error } = await supabase.from("livestock").insert(rows);
 
   if (error) return mapWriteError(error);

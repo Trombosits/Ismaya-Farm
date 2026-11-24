@@ -20,6 +20,9 @@ const speciesSchema = z.object({
     .max(20, "Kode maksimal 20 karakter.")
     .regex(/^[A-Za-z0-9-]+$/, "Kode hanya boleh huruf, angka, dan tanda hubung.")
     .transform((value) => value.toUpperCase()),
+  reproduction_types: z.enum(["LAY_EGG", "GIVE_BIRTH"], {
+    message: "Cara reproduksi wajib dipilih.",
+  }),
 });
 
 function fieldErrors(error: z.ZodError): Record<string, string> {
@@ -37,6 +40,7 @@ function parse(formData: FormData) {
   return speciesSchema.safeParse({
     name: String(formData.get("name") ?? ""),
     code: String(formData.get("code") ?? ""),
+    reproduction_types: String(formData.get("reproduction_types") ?? ""),
   });
 }
 
@@ -71,6 +75,7 @@ export async function createSpecies(formData: FormData): Promise<ActionState> {
   const { error } = await supabase.from("livestock_species").insert({
     name: parsed.data.name,
     code: parsed.data.code,
+    reproduction_types: parsed.data.reproduction_types,
   });
 
   if (error) return mapWriteError(error);
@@ -100,6 +105,7 @@ export async function updateSpecies(
     .update({
       name: parsed.data.name,
       code: parsed.data.code,
+      reproduction_types: parsed.data.reproduction_types,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);

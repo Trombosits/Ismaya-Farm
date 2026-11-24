@@ -15,7 +15,8 @@ import { createLivestock, updateLivestock } from "@/lib/actions/livestock";
 import type { ActionState } from "@/lib/actions/types";
 import {
   ACQUISITION_LABEL,
-  buildNextTagCode,
+  nextTagNumber,
+  parseTagNumber,
   SEX_LABEL,
   STATUS_LABEL,
   type AcquisitionType,
@@ -60,7 +61,9 @@ export function LivestockFormDialog({
   const [breedId, setBreedId] = useState(
     livestock?.breed_id ? String(livestock.breed_id) : "",
   );
-  const [tagCode, setTagCode] = useState(livestock?.tag_code ?? "");
+  const [tagNumber, setTagNumber] = useState(
+    livestock?.tag_code ? String(parseTagNumber(livestock.tag_code) ?? "") : "",
+  );
   const [tagEdited, setTagEdited] = useState(false);
   const [motherId, setMotherId] = useState(
     livestock?.mother_id ? String(livestock.mother_id) : "",
@@ -73,6 +76,13 @@ export function LivestockFormDialog({
   const usedTags = livestockList
     .filter((animal) => String(animal.id) !== String(livestock?.id ?? ""))
     .map((animal) => animal.tag_code);
+
+  // Prefix kode ternak selalu mengikuti jenis ternak yang dipilih.
+  const speciesPrefix = (
+    speciesList.find((item) => String(item.id) === speciesId)?.code ?? ""
+  )
+    .trim()
+    .toUpperCase();
 
   // Filter ras secara lokal berdasarkan spesies yang dipilih
   const breedOptions = speciesId
@@ -110,28 +120,20 @@ export function LivestockFormDialog({
   const generalError = state && !state.ok ? state.message : undefined;
 
   function handleSpeciesChange(value: string) {
-    const previous = speciesList.find((item) => String(item.id) === speciesId);
     const next = speciesList.find((item) => String(item.id) === value);
 
     setSpeciesId(value);
     setBreedId(""); // Reset ras jika spesies diubah
 
-    // Tag yang diketik manual tidak pernah ditimpa.
+    // Nomor yang sudah diisi pengguna tidak pernah ditimpa.
     if (tagEdited) return;
 
-    // Pada mode edit, kode lama hanya diganti bila memang mengikuti prefix
-    // jenis sebelumnya (artinya kode hasil generate, bukan kode khusus).
-    if (isEdit) {
-      const previousPrefix = (previous?.code ?? "").toUpperCase();
-      if (
-        !previousPrefix ||
-        !tagCode.toUpperCase().startsWith(`${previousPrefix}-`)
-      ) {
-        return;
-      }
-    }
+    const nextPrefix = (next?.code ?? "").trim().toUpperCase();
+    if (!nextPrefix) return;
 
-    setTagCode(buildNextTagCode(next?.code, usedTags));
+    setTagNumber(
+      String(nextTagNumber(nextPrefix, usedTags)),
+    );
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -197,30 +199,6 @@ export function LivestockFormDialog({
 
         <FormSection title="Identitas Ternak">
           <Field
-            label="Tag Code"
-            htmlFor="livestock-tag"
-            error={fieldErrors?.tag_code}
-            hint={
-              tagCode
-                ? undefined
-                : "Pilih jenis ternak untuk mengisi kode otomatis."
-            }
-          >
-            <Input
-              id="livestock-tag"
-              name="tag_code"
-              value={tagCode}
-              onChange={(event) => {
-                setTagCode(event.target.value);
-                setTagEdited(true);
-              }}
-              placeholder="Contoh: KMB-006"
-              autoComplete="off"
-              className="font-mono uppercase"
-              disabled={pending}
-            />
-          </Field>
-          <Field
             label="Jenis Ternak"
             htmlFor="livestock-species"
             required
@@ -242,6 +220,42 @@ export function LivestockFormDialog({
                 </option>
               ))}
             </Select>
+          </Field>
+          <Field
+            label="Tag Code"
+            htmlFor="livestock-tag-number"
+            required
+            error={fieldErrors?.tag_number}
+            hint={
+              speciesPrefix
+                ? "Kode jenis ternak terkunci; hanya nomor urut yang dapat diubah."
+                : "Pilih jenis ternak untuk mengunci kode awal."
+            }
+          >
+            <div className="flex items-stretch">
+              <span
+                aria-hidden
+                className="flex h-9 items-center rounded-l-md border border-r-0 border-border-strong bg-panel px-2.5 font-mono text-sm text-muted"
+              >
+                {speciesPrefix || "—"}-
+              </span>
+              <Input
+                id="livestock-tag-number"
+                name="tag_number"
+                inputMode="numeric"
+                value={tagNumber}
+                onChange={(event) => {
+                  const digits = event.target.value.replace(/\D/g, "");
+                  setTagNumber(digits);
+                  setTagEdited(true);
+                }}
+                placeholder="001"
+                autoComplete="off"
+                maxLength={6}
+                className="rounded-l-none font-mono"
+                disabled={pending || !speciesPrefix}
+              />
+            </div>
           </Field>
           <Field
             label="Ras"
