@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 
 // PERBAIKAN: Hanya import types yang dibutuhkan
@@ -47,13 +47,29 @@ export function HealthFormDialog({
 
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<ActionState | null>(null);
+  const [livestockId, setLivestockId] = useState(
+    record?.livestock_id !== undefined && record?.livestock_id !== null
+      ? String(record.livestock_id)
+      : (defaultLivestockId ?? ""),
+  );
 
-  // RESET STATE: Bersihkan pesan error setiap kali dialog dibuka
-  useEffect(() => {
-    if (open) {
-      setState(null);
-    }
-  }, [open]);
+  const livestockOptions = livestockList.map((animal) => {
+    const speciesName =
+      speciesList.find((s) => String(s.id) === String(animal.species_id))
+        ?.name || "—";
+    const breedName =
+      breedList.find((b) => String(b.id) === String(animal.breed_id))?.name ||
+      "—";
+
+    return {
+      value: String(animal.id),
+      label: `${animal.tag_code} — ${speciesName} / ${breedName}`,
+      keywords: `${animal.tag_code} ${speciesName} ${breedName}`,
+    };
+  });
+
+  // RESET STATE: Dialog di-mount ulang setiap kali dibuka, sehingga state awal
+  // cukup diambil dari props saat inisialisasi.
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -133,28 +149,18 @@ export function HealthFormDialog({
         )}
 
         <Field label="Ternak" htmlFor="health-livestock" required>
-          <Select
+          <SearchableSelect
             id="health-livestock"
             name="livestock_id"
-            defaultValue={
-              record?.livestock_id ?? defaultLivestockId ?? ""
-            }
+            value={livestockId}
+            onValueChange={setLivestockId}
+            options={livestockOptions}
+            placeholder="Pilih ternak"
+            searchPlaceholder="Cari tag code, jenis, atau ras…"
+            aria-label="Ternak"
             disabled={isPending}
-          >
-            <option value="" disabled>
-              Pilih ternak
-            </option>
-            {/* PERBAIKAN: Gunakan data dari props */}
-            {livestockList.map((animal) => {
-              const speciesName = speciesList.find(s => s.id === animal.species_id)?.name || "—";
-              const breedName = breedList.find(b => b.id === animal.breed_id)?.name || "—";
-              return (
-                <option key={animal.id} value={animal.id}>
-                  {animal.tag_code} — {speciesName} / {breedName}
-                </option>
-              );
-            })}
-          </Select>
+            invalid={Boolean(state && !state.ok && state.fieldErrors?.livestock_id)}
+          />
           {state && !state.ok && state.fieldErrors?.livestock_id && (
             <p className="text-xs text-red-500 mt-1">{state.fieldErrors.livestock_id}</p>
           )}

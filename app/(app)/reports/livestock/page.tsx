@@ -21,6 +21,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import {
   ACQUISITION_LABEL,
   breedList,
+  formatAcquisitionType,
   formatAge,
   formatDate,
   getBreedName,
@@ -234,7 +235,7 @@ export default function LivestockDataReportPage() {
                     {formatDate(animal.acquisition_date)}
                   </TD>
                   <TD className="text-muted">
-                    {ACQUISITION_LABEL[animal.acquisition_type]}
+                    {formatAcquisitionType(animal.acquisition_type)}
                   </TD>
                   <TD>
                     <Badge variant={STATUS_BADGE[animal.status]}>

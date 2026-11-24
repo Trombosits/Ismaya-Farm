@@ -36,7 +36,23 @@ export type SaleItemUpdate = TablesUpdate<"sale_item">;
 export type SaleItemLivestockRow = Tables<"sale_item_livestock">;
 export type SaleItemLivestockInsert = TablesInsert<"sale_item_livestock">;
 
-export type SupplierRow = Tables<"suppliers">;
+export type FeedTypeRow = Tables<"feed_types">;
+export type FeedTypeInsert = TablesInsert<"feed_types">;
+export type FeedTypeUpdate = TablesUpdate<"feed_types">;
+
+export type FeedPurchaseRow = Tables<"feed_purchases">;
+export type FeedPurchaseInsert = TablesInsert<"feed_purchases">;
+export type FeedPurchaseUpdate = TablesUpdate<"feed_purchases">;
+
+export type FeedPurchaseItemRow = Tables<"feed_purchases_items">;
+export type FeedPurchaseItemInsert = TablesInsert<"feed_purchases_items">;
+
+export type FeedInventoryTransactionRow =
+  Tables<"feed_inventory_transactions">;
+export type FeedInventoryTransactionInsert =
+  TablesInsert<"feed_inventory_transactions">;
+export type FeedInventoryTransactionUpdate =
+  TablesUpdate<"feed_inventory_transactions">;
 
 export type PurchaseCategoryRow = Tables<"purchase_categories">;
 export type PurchaseCategoryInsert = TablesInsert<"purchase_categories">;
