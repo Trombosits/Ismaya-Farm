@@ -9,10 +9,13 @@
  * sedangkan baris database (bigint) memakai number.
  */
 
+export type ReproductionType = "LAY_EGG" | "GIVE_BIRTH";
+
 export interface LivestockSpecies {
   id: string | number;
   name: string;
   code: string;
+  reproduction_types: ReproductionType | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +89,19 @@ export const ACQUISITION_LABEL: Record<AcquisitionType, string> = {
   gift: "Hibah",
 };
 
+export const REPRODUCTION_TYPE_LABEL: Record<ReproductionType, string> = {
+  LAY_EGG: "Bertelur",
+  GIVE_BIRTH: "Melahirkan",
+};
+
+export const REPRODUCTION_TYPE_BADGE: Record<
+  ReproductionType,
+  "info" | "success"
+> = {
+  LAY_EGG: "info",
+  GIVE_BIRTH: "success",
+};
+
 function parseIso(iso: string): Date {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(year, month - 1, day);
@@ -136,27 +152,21 @@ export function nextTagNumber(
   return next;
 }
 
-/**
- * Membentuk Tag Code berikutnya untuk sebuah jenis ternak: prefix diambil dari
- * kode jenis (mis. `KMB`), lalu nomor urut terkecil yang belum dipakai
- * (`KMB-001`, `KMB-002`, …).
- */
-export function buildNextTagCode(
-  speciesCode: string | null | undefined,
-  existingTags: Iterable<string>,
-): string {
-  const prefix = (speciesCode ?? "").trim().toUpperCase();
-  if (!prefix) return "";
-
-  return formatTagCode(prefix, nextTagNumber(prefix, existingTags));
-}
-
 /** Format Tag Code baku: `KMB` + 6 → `KMB-006`. */
 export function formatTagCode(prefix: string, value: number): string {
   const normalized = (prefix ?? "").trim().toUpperCase();
   if (!normalized) return "";
 
   return `${normalized}-${String(value).padStart(3, "0")}`;
+}
+
+/** Nomor urut dari sebuah Tag Code (`KMB-006` → 6); null bila tidak ada. */
+export function parseTagNumber(tagCode: string | null | undefined): number | null {
+  const match = /-(\d+)\s*$/.exec((tagCode ?? "").trim());
+  if (!match) return null;
+
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value : null;
 }
 
 function escapeRegExp(value: string): string {
@@ -193,6 +203,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-01",
     name: "Kambing",
     code: "KMB",
+    reproduction_types: "GIVE_BIRTH",
     created_at: "2026-09-12",
     updated_at: "2026-09-12",
   },
@@ -200,6 +211,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-02",
     name: "Ayam",
     code: "AYM",
+    reproduction_types: "LAY_EGG",
     created_at: "2026-09-12",
     updated_at: "2026-09-13",
   },
@@ -207,6 +219,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-03",
     name: "Bebek",
     code: "BBK",
+    reproduction_types: "LAY_EGG",
     created_at: "2026-09-13",
     updated_at: "2026-09-13",
   },
@@ -214,6 +227,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-04",
     name: "Sapi",
     code: "SPI",
+    reproduction_types: "GIVE_BIRTH",
     created_at: "2026-09-14",
     updated_at: "2026-09-18",
   },
@@ -221,6 +235,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-05",
     name: "Domba",
     code: "DMB",
+    reproduction_types: "GIVE_BIRTH",
     created_at: "2026-09-15",
     updated_at: "2026-09-15",
   },
@@ -228,6 +243,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-06",
     name: "Itik",
     code: "ITK",
+    reproduction_types: "LAY_EGG",
     created_at: "2026-09-16",
     updated_at: "2026-09-16",
   },
@@ -235,6 +251,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-07",
     name: "Angsa",
     code: "AGS",
+    reproduction_types: "LAY_EGG",
     created_at: "2026-09-17",
     updated_at: "2026-09-20",
   },
@@ -242,6 +259,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-08",
     name: "Puyuh",
     code: "PYH",
+    reproduction_types: "LAY_EGG",
     created_at: "2026-09-18",
     updated_at: "2026-09-18",
   },
@@ -249,6 +267,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-09",
     name: "Kelinci",
     code: "KLC",
+    reproduction_types: "GIVE_BIRTH",
     created_at: "2026-09-19",
     updated_at: "2026-09-19",
   },
@@ -256,6 +275,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-10",
     name: "Kalkun",
     code: "KLK",
+    reproduction_types: "LAY_EGG",
     created_at: "2026-09-20",
     updated_at: "2026-09-22",
   },
@@ -263,6 +283,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-11",
     name: "Kuda",
     code: "KDA",
+    reproduction_types: "GIVE_BIRTH",
     created_at: "2026-09-21",
     updated_at: "2026-09-21",
   },
@@ -270,6 +291,7 @@ export const speciesList: LivestockSpecies[] = [
     id: "sp-12",
     name: "Babi",
     code: "BBI",
+    reproduction_types: "GIVE_BIRTH",
     created_at: "2026-09-22",
     updated_at: "2026-09-23",
   },

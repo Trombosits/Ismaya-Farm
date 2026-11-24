@@ -11,7 +11,7 @@ export default async function SpeciesPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("livestock_species")
-    .select("id, name, code, created_at, updated_at")
+    .select("id, name, code, reproduction_types, created_at, updated_at")
     .order("name", { ascending: true });
 
   if (error) {

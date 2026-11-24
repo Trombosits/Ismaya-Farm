@@ -7,8 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { createSpecies, updateSpecies } from "@/lib/actions/species";
 import type { ActionState } from "@/lib/actions/types";
+import {
+  REPRODUCTION_TYPE_LABEL,
+  type ReproductionType,
+} from "@/lib/livestock";
 import type { SpeciesRow } from "@/lib/supabase/types";
 
 interface SpeciesFormDialogProps {
@@ -125,6 +130,30 @@ export function SpeciesFormDialog({
             className="font-mono uppercase"
             disabled={pending}
           />
+        </Field>
+        <Field
+          label="Cara Reproduksi"
+          htmlFor="species-reproduction-type"
+          required
+          error={fieldErrors?.reproduction_types}
+        >
+          <Select
+            id="species-reproduction-type"
+            name="reproduction_types"
+            defaultValue={species?.reproduction_types ?? ""}
+            disabled={pending}
+          >
+            <option value="" disabled>
+              Pilih cara reproduksi
+            </option>
+            {(Object.keys(REPRODUCTION_TYPE_LABEL) as ReproductionType[]).map(
+              (type) => (
+                <option key={type} value={type}>
+                  {REPRODUCTION_TYPE_LABEL[type]}
+                </option>
+              ),
+            )}
+          </Select>
         </Field>
       </form>
     </Dialog>
