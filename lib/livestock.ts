@@ -36,9 +36,9 @@ export interface Livestock {
   species_id: string | number;
   breed_id: string | number | null;
   sex: LivestockSex;
-  birth_date: string;
-  acquisition_date: string;
-  acquisition_type: AcquisitionType;
+  birth_date: string | null;
+  acquisition_date: string | null;
+  acquisition_type: AcquisitionType | null;
   status: LivestockStatus;
   mother_id: string | number | null;
   father_id: string | number | null;
@@ -100,6 +100,67 @@ export function formatDate(iso: string | null): string {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+export function formatAcquisitionType(
+  type: AcquisitionType | null,
+): string {
+  if (!type) return "—";
+  return ACQUISITION_LABEL[type] ?? "—";
+}
+
+/**
+ * Nomor urut terkecil yang belum dipakai untuk prefix tertentu. Nomor yang
+ * sudah terlewat karena data dihapus akan dipakai ulang.
+ */
+export function nextTagNumber(
+  prefix: string,
+  existingTags: Iterable<string>,
+): number {
+  const normalized = (prefix ?? "").trim().toUpperCase();
+  if (!normalized) return 1;
+
+  const used = new Set<number>();
+  const pattern = new RegExp(`^${escapeRegExp(normalized)}-0*(\\d+)$`, "i");
+
+  for (const tag of existingTags) {
+    const match = pattern.exec(tag.trim());
+    if (!match) continue;
+    const value = Number(match[1]);
+    if (Number.isFinite(value)) used.add(value);
+  }
+
+  let next = 1;
+  while (used.has(next)) next += 1;
+
+  return next;
+}
+
+/**
+ * Membentuk Tag Code berikutnya untuk sebuah jenis ternak: prefix diambil dari
+ * kode jenis (mis. `KMB`), lalu nomor urut terkecil yang belum dipakai
+ * (`KMB-001`, `KMB-002`, …).
+ */
+export function buildNextTagCode(
+  speciesCode: string | null | undefined,
+  existingTags: Iterable<string>,
+): string {
+  const prefix = (speciesCode ?? "").trim().toUpperCase();
+  if (!prefix) return "";
+
+  return formatTagCode(prefix, nextTagNumber(prefix, existingTags));
+}
+
+/** Format Tag Code baku: `KMB` + 6 → `KMB-006`. */
+export function formatTagCode(prefix: string, value: number): string {
+  const normalized = (prefix ?? "").trim().toUpperCase();
+  if (!normalized) return "";
+
+  return `${normalized}-${String(value).padStart(3, "0")}`;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** Menghitung umur berdasarkan tanggal hari ini. */

@@ -1,15 +1,17 @@
 /**
- * Frontend-only dashboard aggregation.
+ * Dashboard aggregation.
  *
- * Every value here is derived at runtime from the existing mock data. No
- * database field is added; all numbers are UI summaries.
+ * Livestock/reproduction/health numbers still derive from local reference data;
+ * feed figures are supplied by the server from Supabase. No value here is a
+ * stored aggregate.
  */
 
 import {
-  feedPurchases,
-  feedTypes,
-  getStockByFeedType,
+  computeStockMap,
   getStockStatus,
+  type FeedInventoryTransaction,
+  type FeedPurchase,
+  type FeedType,
 } from "./feed";
 import {
   getBreedName,
@@ -88,7 +90,16 @@ function minIso(candidates: string[]): string | null {
   );
 }
 
-export function getDashboardData(sales: Sale[]): DashboardData {
+export interface DashboardFeedData {
+  feedTypes: FeedType[];
+  feedPurchases: FeedPurchase[];
+  feedTransactions: FeedInventoryTransaction[];
+}
+
+export function getDashboardData(
+  sales: Sale[],
+  feed: DashboardFeedData,
+): DashboardData {
   const referenceIso = `${REFERENCE_DATE.getFullYear()}-${String(
     REFERENCE_DATE.getMonth() + 1,
   ).padStart(2, "0")}-${String(REFERENCE_DATE.getDate()).padStart(2, "0")}`;
@@ -107,11 +118,12 @@ export function getDashboardData(sales: Sale[]): DashboardData {
     (batch) => batch.status === "active",
   ).length;
 
-  const feedTypeCount = feedTypes.length;
-  const feedBelowMinimum = feedTypes.filter((feed) => {
+  const stockMap = computeStockMap(feed.feedTransactions);
+  const feedTypeCount = feed.feedTypes.length;
+  const feedBelowMinimum = feed.feedTypes.filter((feedType) => {
     const status = getStockStatus(
-      getStockByFeedType(feed.id),
-      feed.minimum_stock,
+      stockMap.get(feedType.id) ?? 0,
+      feedType.minimum_stock,
     );
     return status === "below";
   }).length;
@@ -229,7 +241,7 @@ export function getDashboardData(sales: Sale[]): DashboardData {
       reference: `${animal?.tag_code ?? "—"} — ${record.condition}`,
     });
   }
-  for (const purchase of feedPurchases) {
+  for (const purchase of feed.feedPurchases) {
     rawActivities.push({
       id: `feed-${purchase.id}`,
       date: purchase.purchase_date,

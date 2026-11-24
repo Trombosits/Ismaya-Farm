@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/description-list";
 import { Section, SectionHeader } from "@/components/ui/section";
 import {
-  ACQUISITION_LABEL,
+  formatAcquisitionType,
   formatAge,
   formatDate,
   getBreedName,
@@ -77,7 +77,7 @@ export function InformasiTab({ animal }: { animal: Livestock }) {
             {formatDate(animal.acquisition_date)}
           </DescriptionItem>
           <DescriptionItem label="Cara Perolehan">
-            {ACQUISITION_LABEL[animal.acquisition_type]}
+            {formatAcquisitionType(animal.acquisition_type)}
           </DescriptionItem>
         </DescriptionList>
       </Section>

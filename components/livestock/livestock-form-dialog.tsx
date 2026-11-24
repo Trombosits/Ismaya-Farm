@@ -8,12 +8,14 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createLivestock, updateLivestock } from "@/lib/actions/livestock";
 import type { ActionState } from "@/lib/actions/types";
 import {
   ACQUISITION_LABEL,
+  buildNextTagCode,
   SEX_LABEL,
   STATUS_LABEL,
   type AcquisitionType,
@@ -58,18 +60,35 @@ export function LivestockFormDialog({
   const [breedId, setBreedId] = useState(
     livestock?.breed_id ? String(livestock.breed_id) : "",
   );
+  const [tagCode, setTagCode] = useState(livestock?.tag_code ?? "");
+  const [tagEdited, setTagEdited] = useState(false);
+  const [motherId, setMotherId] = useState(
+    livestock?.mother_id ? String(livestock.mother_id) : "",
+  );
+  const [fatherId, setFatherId] = useState(
+    livestock?.father_id ? String(livestock.father_id) : "",
+  );
+
+  // Tag yang sudah terpakai, kecuali milik ternak yang sedang diedit.
+  const usedTags = livestockList
+    .filter((animal) => String(animal.id) !== String(livestock?.id ?? ""))
+    .map((animal) => animal.tag_code);
 
   // Filter ras secara lokal berdasarkan spesies yang dipilih
   const breedOptions = speciesId
-    ? breedList.filter((b) => b.species_id === Number(speciesId))
+    ? breedList.filter((b) => String(b.species_id) === speciesId)
     : breedList;
 
   // Ambil daftar induk betina dan jantan dari props livestockList
   const mothers = livestockList.filter(
-    (animal) => animal.sex === "female" && animal.id !== livestock?.id,
+    (animal) =>
+      animal.sex === "female" &&
+      String(animal.id) !== String(livestock?.id ?? ""),
   );
   const fathers = livestockList.filter(
-    (animal) => animal.sex === "male" && animal.id !== livestock?.id,
+    (animal) =>
+      animal.sex === "male" &&
+      String(animal.id) !== String(livestock?.id ?? ""),
   );
 
   // Fungsi helper untuk mendapatkan nama ras secara lokal
@@ -80,8 +99,40 @@ export function LivestockFormDialog({
     );
   };
 
+  const parentOptions = (animals: Livestock[]) =>
+    animals.map((animal) => ({
+      value: String(animal.id),
+      label: `${animal.tag_code} — ${getLocalBreedName(animal.breed_id)}`,
+      keywords: animal.tag_code,
+    }));
+
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
   const generalError = state && !state.ok ? state.message : undefined;
+
+  function handleSpeciesChange(value: string) {
+    const previous = speciesList.find((item) => String(item.id) === speciesId);
+    const next = speciesList.find((item) => String(item.id) === value);
+
+    setSpeciesId(value);
+    setBreedId(""); // Reset ras jika spesies diubah
+
+    // Tag yang diketik manual tidak pernah ditimpa.
+    if (tagEdited) return;
+
+    // Pada mode edit, kode lama hanya diganti bila memang mengikuti prefix
+    // jenis sebelumnya (artinya kode hasil generate, bukan kode khusus).
+    if (isEdit) {
+      const previousPrefix = (previous?.code ?? "").toUpperCase();
+      if (
+        !previousPrefix ||
+        !tagCode.toUpperCase().startsWith(`${previousPrefix}-`)
+      ) {
+        return;
+      }
+    }
+
+    setTagCode(buildNextTagCode(next?.code, usedTags));
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -148,13 +199,21 @@ export function LivestockFormDialog({
           <Field
             label="Tag Code"
             htmlFor="livestock-tag"
-            required
             error={fieldErrors?.tag_code}
+            hint={
+              tagCode
+                ? undefined
+                : "Pilih jenis ternak untuk mengisi kode otomatis."
+            }
           >
             <Input
               id="livestock-tag"
               name="tag_code"
-              defaultValue={livestock?.tag_code ?? ""}
+              value={tagCode}
+              onChange={(event) => {
+                setTagCode(event.target.value);
+                setTagEdited(true);
+              }}
               placeholder="Contoh: KMB-006"
               autoComplete="off"
               className="font-mono uppercase"
@@ -172,10 +231,7 @@ export function LivestockFormDialog({
               name="species_id"
               value={speciesId}
               disabled={pending}
-              onChange={(event) => {
-                setSpeciesId(event.target.value);
-                setBreedId(""); // Reset ras jika spesies diubah
-              }}
+              onChange={(event) => handleSpeciesChange(event.target.value)}
             >
               <option value="" disabled>
                 Pilih jenis ternak
@@ -238,7 +294,6 @@ export function LivestockFormDialog({
           <Field
             label="Tanggal Lahir"
             htmlFor="livestock-birth"
-            required
             error={fieldErrors?.birth_date}
           >
             <Input
@@ -252,7 +307,6 @@ export function LivestockFormDialog({
           <Field
             label="Tanggal Perolehan"
             htmlFor="livestock-acquisition"
-            required
             error={fieldErrors?.acquisition_date}
           >
             <Input
@@ -271,9 +325,10 @@ export function LivestockFormDialog({
             <Select
               id="livestock-acq-type"
               name="acquisition_type"
-              defaultValue={livestock?.acquisition_type ?? "born"}
+              defaultValue={livestock?.acquisition_type ?? ""}
               disabled={pending}
             >
+              <option value="">Tidak diisi</option>
               {(Object.keys(ACQUISITION_LABEL) as AcquisitionType[]).map(
                 (type) => (
                   <option key={type} value={type}>
@@ -311,42 +366,38 @@ export function LivestockFormDialog({
             htmlFor="livestock-mother"
             error={fieldErrors?.mother_id}
           >
-            <Select
+            <SearchableSelect
               id="livestock-mother"
               name="mother_id"
-              defaultValue={
-                livestock?.mother_id ? String(livestock.mother_id) : ""
-              }
+              value={motherId}
+              onValueChange={setMotherId}
+              options={parentOptions(mothers)}
+              placeholder="Tidak tercatat"
+              emptyOptionLabel="Tidak tercatat"
+              searchPlaceholder="Cari nama atau tag code…"
+              aria-label="Induk betina"
               disabled={pending}
-            >
-              <option value="">Tidak tercatat</option>
-              {mothers.map((animal) => (
-                <option key={animal.id} value={String(animal.id)}>
-                  {animal.tag_code} — {getLocalBreedName(animal.breed_id)}
-                </option>
-              ))}
-            </Select>
+              invalid={Boolean(fieldErrors?.mother_id)}
+            />
           </Field>
           <Field
             label="Induk Jantan"
             htmlFor="livestock-father"
             error={fieldErrors?.father_id}
           >
-            <Select
+            <SearchableSelect
               id="livestock-father"
               name="father_id"
-              defaultValue={
-                livestock?.father_id ? String(livestock.father_id) : ""
-              }
+              value={fatherId}
+              onValueChange={setFatherId}
+              options={parentOptions(fathers)}
+              placeholder="Tidak tercatat"
+              emptyOptionLabel="Tidak tercatat"
+              searchPlaceholder="Cari nama atau tag code…"
+              aria-label="Induk jantan"
               disabled={pending}
-            >
-              <option value="">Tidak tercatat</option>
-              {fathers.map((animal) => (
-                <option key={animal.id} value={String(animal.id)}>
-                  {animal.tag_code} — {getLocalBreedName(animal.breed_id)}
-                </option>
-              ))}
-            </Select>
+              invalid={Boolean(fieldErrors?.father_id)}
+            />
           </Field>
         </FormSection>
 

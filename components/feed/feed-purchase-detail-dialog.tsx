@@ -8,34 +8,36 @@ import {
 import { Dialog } from "@/components/ui/dialog";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import {
-  getFeedTypeUnit,
   getFeedTypeName,
-  getPurchaseItems,
-  getPurchaseTotal,
-  getSupplierName,
+  getFeedTypeUnit,
   type FeedPurchase,
+  type FeedPurchaseItem,
+  type FeedType,
 } from "@/lib/feed";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { formatDate } from "@/lib/livestock";
 
 interface FeedPurchaseDetailDialogProps {
   purchase: FeedPurchase;
+  items: FeedPurchaseItem[];
+  feedTypes: FeedType[];
   onClose: () => void;
 }
 
 export function FeedPurchaseDetailDialog({
   purchase,
+  items,
+  feedTypes,
   onClose,
 }: FeedPurchaseDetailDialogProps) {
-  const items = getPurchaseItems(purchase.id);
-  const total = getPurchaseTotal(purchase.id);
+  const total = items.reduce((sum, item) => sum + item.subtotal, 0);
 
   return (
     <Dialog
       open
       onClose={onClose}
       title="Detail Pembelian"
-      description={purchase.invoice_number}
+      description={purchase.invoice_number || "Tanpa nomor invoice"}
       className="max-w-2xl"
       footer={
         <Button variant="secondary" size="sm" onClick={onClose}>
@@ -49,7 +51,7 @@ export function FeedPurchaseDetailDialog({
             {formatDate(purchase.purchase_date)}
           </DescriptionItem>
           <DescriptionItem label="Supplier">
-            {getSupplierName(purchase.supplier_id)}
+            {purchase.supplier || "—"}
           </DescriptionItem>
           <DescriptionItem label="No. Invoice">
             <span className="font-mono">{purchase.invoice_number || "—"}</span>
@@ -72,12 +74,10 @@ export function FeedPurchaseDetailDialog({
           <TBody>
             {items.map((item) => (
               <TR key={item.id}>
-                <TD>{getFeedTypeName(item.feed_type_id)}</TD>
-                <TD className="text-right">
-                  {formatNumber(item.quantity)}
-                </TD>
+                <TD>{getFeedTypeName(feedTypes, item.feed_type_id)}</TD>
+                <TD className="text-right">{formatNumber(item.quantity)}</TD>
                 <TD className="text-muted">
-                  {getFeedTypeUnit(item.feed_type_id)}
+                  {getFeedTypeUnit(feedTypes, item.feed_type_id)}
                 </TD>
                 <TD className="text-right">
                   {formatCurrency(item.unit_price)}

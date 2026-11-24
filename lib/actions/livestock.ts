@@ -3,11 +3,35 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { buildNextTagCode, formatTagCode } from "@/lib/livestock";
 import { createClient } from "@/lib/supabase/server";
 
 import type { ActionState } from "./types";
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+const optionalDate = (message: string) =>
+  z.preprocess(
+    (value) => {
+      const text = typeof value === "string" ? value.trim() : "";
+      return text === "" ? null : text;
+    },
+    z.string().regex(dateRegex, message).nullable(),
+  );
+
+const optionalAcquisitionType = z.preprocess(
+  (value) => {
+    const text = String(value ?? "").trim();
+    return text === "" ? null : text;
+  },
+  z
+    .enum(["born", "purchased", "gift"], {
+      message: "Cara perolehan tidak valid.",
+    })
+    .nullable(),
+);
 
 const requiredId = (message: string) =>
   z.preprocess(
@@ -28,31 +52,34 @@ const optionalId = () =>
     z.number().int().positive().nullable(),
   );
 
-const livestockSchema = z.object({
-  tag_code: z
+const optionalTagCode = z.preprocess(
+  (value) => {
+    const text = String(value ?? "").trim();
+    return text === "" ? null : text;
+  },
+  z
     .string()
-    .trim()
-    .min(1, "Tag code wajib diisi.")
     .max(30, "Tag code maksimal 30 karakter.")
     .regex(
       /^[A-Za-z0-9-]+$/,
       "Tag code hanya boleh huruf, angka, dan tanda hubung.",
     )
-    .transform((value) => value.toUpperCase()),
+    .transform((value) => value.toUpperCase())
+    .nullable(),
+);
+
+const livestockSchema = z.object({
+  tag_code: optionalTagCode,
   species_id: requiredId("Jenis ternak wajib dipilih."),
   breed_id: optionalId(),
   sex: z.enum(["male", "female"], {
     message: "Jenis kelamin wajib dipilih.",
   }),
-  birth_date: z
-    .string()
-    .regex(dateRegex, "Format tanggal lahir tidak valid (YYYY-MM-DD)."),
-  acquisition_date: z
-    .string()
-    .regex(dateRegex, "Format tanggal perolehan tidak valid (YYYY-MM-DD)."),
-  acquisition_type: z.enum(["born", "purchased", "gift"], {
-    message: "Cara perolehan tidak valid.",
-  }),
+  birth_date: optionalDate("Format tanggal lahir tidak valid (YYYY-MM-DD)."),
+  acquisition_date: optionalDate(
+    "Format tanggal perolehan tidak valid (YYYY-MM-DD).",
+  ),
+  acquisition_type: optionalAcquisitionType,
   status: z.enum(["active", "sold", "dead", "transferred"], {
     message: "Status tidak valid.",
   }),
@@ -131,18 +158,14 @@ function mapWriteError(error: { code?: string; message: string }): ActionState {
 }
 
 function parse(formData: FormData) {
-  const birthDate = String(formData.get("birth_date") ?? "");
-  const acquisitionDate =
-    String(formData.get("acquisition_date") ?? "") || birthDate;
-
   return livestockSchema.safeParse({
     tag_code: String(formData.get("tag_code") ?? ""),
     species_id: formData.get("species_id"),
     breed_id: formData.get("breed_id"),
     sex: String(formData.get("sex") ?? ""),
-    birth_date: birthDate,
-    acquisition_date: acquisitionDate,
-    acquisition_type: String(formData.get("acquisition_type") ?? "born"),
+    birth_date: String(formData.get("birth_date") ?? ""),
+    acquisition_date: String(formData.get("acquisition_date") ?? ""),
+    acquisition_type: String(formData.get("acquisition_type") ?? ""),
     status: String(formData.get("status") ?? "active"),
     mother_id: formData.get("mother_id"),
     father_id: formData.get("father_id"),
@@ -150,15 +173,41 @@ function parse(formData: FormData) {
   });
 }
 
-function buildCode(prefix: string, value: number): string {
-  return `${prefix}-${String(value).padStart(3, "0")}`;
+/**
+ * Menentukan Tag Code final. Bila form mengirim tag kosong, kode dibentuk dari
+ * kode jenis ternak + nomor urut terkecil yang belum terpakai di database.
+ */
+async function resolveTagCode(
+  supabase: Supabase,
+  tagCode: string | null,
+  speciesId: number,
+  excludeId?: number,
+): Promise<string | null> {
+  if (tagCode) return tagCode;
+
+  const { data: species, error: speciesError } = await supabase
+    .from("livestock_species")
+    .select("code")
+    .eq("id", speciesId)
+    .maybeSingle();
+
+  if (speciesError || !species?.code) return null;
+
+  let query = supabase.from("livestock").select("tag_code");
+  if (excludeId !== undefined) query = query.neq("id", excludeId);
+
+  const { data: rows, error } = await query;
+  if (error) return null;
+
+  const existing = (rows ?? [])
+    .map((row) => row.tag_code)
+    .filter((code): code is string => Boolean(code));
+
+  return buildNextTagCode(species.code, existing) || null;
 }
 
-function todayIso(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
+function buildCode(prefix: string, value: number): string {
+  return formatTagCode(prefix, value);
 }
 
 export async function createLivestock(
@@ -174,7 +223,23 @@ export async function createLivestock(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("livestock").insert(parsed.data);
+  const tagCode = await resolveTagCode(
+    supabase,
+    parsed.data.tag_code,
+    parsed.data.species_id,
+  );
+
+  if (!tagCode) {
+    return {
+      ok: false,
+      message: "Tag code gagal dibuat otomatis. Isi tag code secara manual.",
+      fieldErrors: { tag_code: "Tag code wajib diisi." },
+    };
+  }
+
+  const { error } = await supabase
+    .from("livestock")
+    .insert({ ...parsed.data, tag_code: tagCode });
 
   if (error) return mapWriteError(error);
 
@@ -200,9 +265,20 @@ export async function updateLivestock(
   }
 
   const supabase = await createClient();
+  const tagCode = await resolveTagCode(
+    supabase,
+    parsed.data.tag_code,
+    parsed.data.species_id,
+    id,
+  );
+
   const { error } = await supabase
     .from("livestock")
-    .update({ ...parsed.data, updated_at: new Date().toISOString() })
+    .update({
+      ...parsed.data,
+      tag_code: tagCode ?? parsed.data.tag_code ?? undefined,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id);
 
   if (error) return mapWriteError(error);
@@ -214,10 +290,8 @@ export async function updateLivestock(
 /**
  * Membuat banyak ternak sekaligus dengan kode berurutan.
  *
- * Karena form massal tidak mengisi tanggal, dipakai default:
- * - acquisition_date & birth_date = hari ini
- * - acquisition_type = "purchased"
- * - status = "active"
+ * Form massal hanya mengisi identitas dasar, sehingga tanggal lahir, tanggal
+ * perolehan, dan cara perolehan dikirim sebagai null. Status diisi "active".
  */
 export async function createLivestockBulk(
   formData: FormData,
@@ -241,16 +315,15 @@ export async function createLivestockBulk(
 
   const { species_id, breed_id, sex, count, prefix, start_number } =
     parsed.data;
-  const today = todayIso();
 
   const rows = Array.from({ length: count }, (_, index) => ({
     tag_code: buildCode(prefix, start_number + index),
     species_id,
     breed_id,
     sex,
-    birth_date: today,
-    acquisition_date: today,
-    acquisition_type: "purchased" as const,
+    birth_date: null,
+    acquisition_date: null,
+    acquisition_type: null,
     status: "active" as const,
     notes: null,
   }));

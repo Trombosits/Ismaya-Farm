@@ -19,12 +19,33 @@ import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { SummaryCard, SummaryCards } from "@/components/ui/summary-card";
 import { getDashboardData } from "@/lib/dashboard";
+import type {
+  FeedInventoryTransaction,
+  FeedPurchase,
+  FeedType,
+} from "@/lib/feed";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import type { Sale } from "@/lib/products";
 
-export function DashboardClient({ sales }: { sales: Sale[] }) {
+interface DashboardClientProps {
+  sales: Sale[];
+  feedTypes: FeedType[];
+  feedPurchases: FeedPurchase[];
+  feedTransactions: FeedInventoryTransaction[];
+}
+
+export function DashboardClient({
+  sales,
+  feedTypes,
+  feedPurchases,
+  feedTransactions,
+}: DashboardClientProps) {
   const [viewState, setViewState] = useState<TableViewState>("data");
-  const data = getDashboardData(sales);
+  const data = getDashboardData(sales, {
+    feedTypes,
+    feedPurchases,
+    feedTransactions,
+  });
 
   const forceEmpty = viewState === "empty";
   const attention = forceEmpty ? [] : data.attention;

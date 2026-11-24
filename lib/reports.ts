@@ -197,7 +197,11 @@ export function resolvePeriod(period: ReportPeriod): DateRange {
   return { from: toIso(start), to: toIso(end) };
 }
 
-export function withinRange(iso: string, range: DateRange): boolean {
+export function withinRange(
+  iso: string | null,
+  range: DateRange,
+): boolean {
+  if (!iso) return false;
   return iso >= range.from && iso <= range.to;
 }
 
@@ -239,7 +243,7 @@ export interface MonthPoint {
 
 export function aggregateByMonth<T>(
   items: T[],
-  dateOf: (item: T) => string,
+  dateOf: (item: T) => string | null,
   range: DateRange,
   valueOf: (item: T) => number = () => 1,
 ): MonthPoint[] {
@@ -247,7 +251,9 @@ export function aggregateByMonth<T>(
   const totals = new Map(keys.map((key) => [key, 0]));
 
   for (const item of items) {
-    const key = dateOf(item).slice(0, 7);
+    const date = dateOf(item);
+    if (!date) continue;
+    const key = date.slice(0, 7);
     if (totals.has(key)) {
       totals.set(key, (totals.get(key) ?? 0) + valueOf(item));
     }

@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import {
+  formatTagCode,
+  nextTagNumber,
   SEX_LABEL,
   type Livestock,
   type LivestockBreed,
@@ -59,6 +61,8 @@ export function BulkAddDialog({
   const [step, setStep] = useState<"form" | "preview">("form");
   const [submitted, setSubmitted] = useState(false);
   const [fields, setFields] = useState<BulkFields>(INITIAL);
+  const [prefixEdited, setPrefixEdited] = useState(false);
+  const [startEdited, setStartEdited] = useState(false);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [state, setState] = useState<ActionState | null>(null);
@@ -105,6 +109,23 @@ export function BulkAddDialog({
 
   function update(patch: Partial<BulkFields>) {
     setFields((current) => ({ ...current, ...patch }));
+  }
+
+  // Prefix mengikuti kode jenis ternak & nomor mulai mengikuti nomor terkecil
+  // yang belum terpakai, selama pengguna belum mengubahnya sendiri.
+  function handleSpeciesChange(speciesId: string) {
+    const species = speciesList.find(
+      (item) => String(item.id) === speciesId,
+    );
+    const prefix = species?.code ?? "";
+    const patch: Partial<BulkFields> = { speciesId, breedId: "" };
+
+    if (!prefixEdited) patch.prefix = prefix;
+    if (!startEdited && prefix) {
+      patch.startNumber = String(nextTagNumber(prefix, existingTags));
+    }
+
+    update(patch);
   }
 
   function handleNext() {
@@ -198,9 +219,7 @@ export function BulkAddDialog({
               <Select
                 id="bulk-species"
                 value={fields.speciesId}
-                onChange={(event) =>
-                  update({ speciesId: event.target.value, breedId: "" })
-                }
+                onChange={(event) => handleSpeciesChange(event.target.value)}
               >
                 <option value="" disabled>
                   Pilih jenis ternak
@@ -280,7 +299,10 @@ export function BulkAddDialog({
               <Input
                 id="bulk-prefix"
                 value={fields.prefix}
-                onChange={(event) => update({ prefix: event.target.value })}
+                onChange={(event) => {
+                  update({ prefix: event.target.value });
+                  setPrefixEdited(true);
+                }}
                 placeholder="KMB"
                 autoComplete="off"
                 className="font-mono uppercase"
@@ -297,7 +319,10 @@ export function BulkAddDialog({
                 type="number"
                 min={1}
                 value={fields.startNumber}
-                onChange={(event) => update({ startNumber: event.target.value })}
+                onChange={(event) => {
+                  update({ startNumber: event.target.value });
+                  setStartEdited(true);
+                }}
               />
             </Field>
           </FormSection>
@@ -305,7 +330,8 @@ export function BulkAddDialog({
           <p className="rounded-md border border-border bg-panel px-3 py-2.5 text-xs text-muted">
             Status seluruh ternak baru akan diatur otomatis ke{" "}
             <span className="font-medium text-ink">Aktif</span>. Tanggal lahir,
-            induk, dan catatan tidak diisi pada proses massal ini.
+            tanggal perolehan, cara perolehan, induk, dan catatan dikosongkan
+            dan dapat dilengkapi kemudian.
           </p>
         </div>
       ) : (
@@ -407,6 +433,5 @@ export function BulkAddDialog({
 }
 
 function buildCode(prefix: string, value: number): string {
-  const normalized = prefix.trim().toUpperCase();
-  return `${normalized}-${String(value).padStart(3, "0")}`;
+  return formatTagCode(prefix, value);
 }

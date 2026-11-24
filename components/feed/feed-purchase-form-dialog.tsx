@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  feedTypes,
-  suppliers,
-  type FeedPurchase,
-  type FeedPurchaseItem,
+  createFeedPurchase,
+  updateFeedPurchase,
+} from "@/lib/actions/feed";
+import type { ActionState } from "@/lib/actions/types";
+import type {
+  FeedPurchase,
+  FeedPurchaseItem,
+  FeedType,
 } from "@/lib/feed";
 import { formatCurrency } from "@/lib/format";
 
@@ -31,6 +36,7 @@ interface FeedPurchaseFormDialogProps {
   mode: "create" | "edit";
   purchase?: FeedPurchase | null;
   initialItems?: FeedPurchaseItem[];
+  feedTypes: FeedType[];
 }
 
 function buildInitialItems(items?: FeedPurchaseItem[]): PurchaseItemRow[] {
@@ -51,7 +57,9 @@ export function FeedPurchaseFormDialog({
   mode,
   purchase,
   initialItems,
+  feedTypes,
 }: FeedPurchaseFormDialogProps) {
+  const router = useRouter();
   const isEdit = mode === "edit";
   const formId = "feed-purchase-form";
   const keyCounter = useRef(1000);
@@ -59,6 +67,9 @@ export function FeedPurchaseFormDialog({
   const [items, setItems] = useState<PurchaseItemRow[]>(() =>
     buildInitialItems(initialItems),
   );
+  const [pending, startTransition] = useTransition();
+  const [state, setState] = useState<ActionState | null>(null);
+  const [itemsError, setItemsError] = useState<string | null>(null);
 
   const total = items.reduce((sum, item) => {
     const value = Number(item.quantity) * Number(item.unit_price);
@@ -83,6 +94,52 @@ export function FeedPurchaseFormDialog({
     setItems((current) => current.filter((item) => item.key !== key));
   }
 
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setState(null);
+
+    const validItems = items.filter(
+      (item) =>
+        item.feed_type_id !== "" &&
+        Number(item.quantity) > 0,
+    );
+
+    if (validItems.length === 0) {
+      setItemsError("Minimal satu item pakan dengan jumlah > 0 wajib diisi.");
+      return;
+    }
+    setItemsError(null);
+
+    const formData = new FormData(event.currentTarget);
+    formData.set(
+      "items",
+      JSON.stringify(
+        validItems.map((item) => ({
+          feed_type_id: Number(item.feed_type_id),
+          quantity: Number(item.quantity),
+          unit_price: Number(item.unit_price) || 0,
+        })),
+      ),
+    );
+
+    startTransition(async () => {
+      const result =
+        isEdit && purchase
+          ? await updateFeedPurchase(Number(purchase.id), formData)
+          : await createFeedPurchase(formData);
+
+      if (result.ok) {
+        router.refresh();
+        onClose();
+      } else {
+        setState(result);
+      }
+    });
+  }
+
+  const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
+  const generalError = state && !state.ok ? state.message : undefined;
+
   return (
     <Dialog
       open={open}
@@ -96,10 +153,15 @@ export function FeedPurchaseFormDialog({
       className="max-w-3xl"
       footer={
         <>
-          <Button variant="secondary" size="sm" onClick={onClose}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onClose}
+            disabled={pending}
+          >
             Batal
           </Button>
-          <Button type="submit" form={formId} size="sm">
+          <Button type="submit" form={formId} size="sm" loading={pending}>
             Simpan
           </Button>
         </>
@@ -107,38 +169,54 @@ export function FeedPurchaseFormDialog({
     >
       <form
         id={formId}
-        onSubmit={(event) => {
-          event.preventDefault();
-          onClose();
-        }}
+        onSubmit={handleSubmit}
         className="scrollbar-thin flex max-h-[72vh] flex-col gap-6 overflow-y-auto"
       >
+        {generalError ? (
+          <p
+            role="alert"
+            className="rounded-md border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger"
+          >
+            {generalError}
+          </p>
+        ) : null}
+
         <FormSection title="Informasi Pembelian">
-          <Field label="Tanggal" htmlFor="fp-date" required>
+          <Field
+            label="Tanggal"
+            htmlFor="fp-date"
+            required
+            error={fieldErrors?.purchase_date}
+          >
             <Input
               id="fp-date"
               name="purchase_date"
               type="date"
               defaultValue={purchase?.purchase_date ?? ""}
+              disabled={pending}
             />
           </Field>
-          <Field label="Supplier" htmlFor="fp-supplier" required>
-            <Select
+          <Field
+            label="Supplier"
+            htmlFor="fp-supplier"
+            required
+            error={fieldErrors?.supplier}
+          >
+            <Input
               id="fp-supplier"
-              name="supplier_id"
-              defaultValue={purchase?.supplier_id ?? ""}
-            >
-              <option value="" disabled>
-                Pilih supplier
-              </option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </Select>
+              name="supplier"
+              defaultValue={purchase?.supplier ?? ""}
+              placeholder="Contoh: CV Pakan Sejahtera"
+              autoComplete="off"
+              disabled={pending}
+            />
           </Field>
-          <Field label="No. Invoice" htmlFor="fp-invoice">
+          <Field
+            label="No. Invoice"
+            htmlFor="fp-invoice"
+            error={fieldErrors?.invoice_number}
+            hint="Boleh dikosongkan."
+          >
             <Input
               id="fp-invoice"
               name="invoice_number"
@@ -146,6 +224,7 @@ export function FeedPurchaseFormDialog({
               placeholder="Contoh: INV-2026-0920"
               autoComplete="off"
               className="font-mono"
+              disabled={pending}
             />
           </Field>
         </FormSection>
@@ -179,6 +258,7 @@ export function FeedPurchaseFormDialog({
                     <Select
                       aria-label="Jenis pakan"
                       value={item.feed_type_id}
+                      disabled={pending}
                       onChange={(event) =>
                         updateItem(item.key, {
                           feed_type_id: event.target.value,
@@ -203,7 +283,9 @@ export function FeedPurchaseFormDialog({
                       aria-label="Quantity"
                       type="number"
                       min={0}
+                      step="any"
                       value={item.quantity}
+                      disabled={pending}
                       onChange={(event) =>
                         updateItem(item.key, { quantity: event.target.value })
                       }
@@ -217,7 +299,9 @@ export function FeedPurchaseFormDialog({
                       aria-label="Harga satuan"
                       type="number"
                       min={0}
+                      step="any"
                       value={item.unit_price}
+                      disabled={pending}
                       onChange={(event) =>
                         updateItem(item.key, { unit_price: event.target.value })
                       }
@@ -234,7 +318,7 @@ export function FeedPurchaseFormDialog({
                   <button
                     type="button"
                     aria-label="Hapus item"
-                    disabled={items.length === 1}
+                    disabled={items.length === 1 || pending}
                     onClick={() => removeItem(item.key)}
                     className="grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-danger-soft hover:text-danger disabled:pointer-events-none disabled:opacity-40 sm:justify-self-center"
                   >
@@ -245,12 +329,19 @@ export function FeedPurchaseFormDialog({
             })}
           </div>
 
+          {itemsError ? (
+            <p className="text-xs text-danger" role="alert">
+              {itemsError}
+            </p>
+          ) : null}
+
           <div className="flex flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
               type="button"
               variant="secondary"
               size="sm"
               onClick={addItem}
+              disabled={pending}
               className="w-full sm:w-auto"
             >
               <Plus aria-hidden className="size-3.5" />
@@ -275,6 +366,7 @@ export function FeedPurchaseFormDialog({
             rows={3}
             defaultValue={purchase?.notes ?? ""}
             placeholder="Catatan tambahan mengenai pembelian ini…"
+            disabled={pending}
           />
         </fieldset>
       </form>
