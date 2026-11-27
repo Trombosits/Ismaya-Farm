@@ -82,9 +82,20 @@ export async function getHatcheryBatch(
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data: batch, error } = await supabase
     .from("hatchery_batches")
-    .select("*")
+    .select(
+      `
+      id,
+      species_id,
+      start_date,
+      egg_quantity,
+      status,
+      notes,
+      created_at,
+      updated_at
+    `,
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -92,17 +103,36 @@ export async function getHatcheryBatch(
     throw new Error(`Gagal memuat batch penetasan: ${error.message}`);
   }
 
-  if (!data) {
+  if (!batch) {
     return null;
   }
 
-  if (!isHatcheryBatchStatus(data.status)) {
-    throw new Error(`Status batch tidak valid: ${data.status ?? "null"}`);
+  const { data: species, error: speciesError } = await supabase
+    .from("livestock_species")
+    .select("id, name, code")
+    .eq("id", batch.species_id)
+    .maybeSingle();
+
+  if (speciesError) {
+    throw new Error(`Gagal memuat jenis ternak: ${speciesError.message}`);
+  }
+
+  if (!species) {
+    throw new Error("Jenis ternak untuk batch ini tidak ditemukan.");
+  }
+
+  if (!isHatcheryBatchStatus(batch.status)) {
+    throw new Error("Status batch tidak valid.");
   }
 
   return {
-    ...data,
-    status: data.status,
+    ...batch,
+    batch_code: `${species.code}-${batch.start_date.slice(0, 4)}-${String(
+      batch.id,
+    ).padStart(3, "0")}`,
+    species_name: species.name,
+    species_code: species.code,
+    status: batch.status,
   };
 }
 
@@ -117,9 +147,21 @@ export async function getCandlingByBatch(
 
   const { data, error } = await supabase
     .from("hatchery_candling_records")
-    .select("*")
+    .select(
+      `
+    id,
+    batch_id,
+    candling_date,
+    age_days,
+    fertile_count,
+    infertile_count,
+    dead_embryo_count,
+    notes,
+    created_at
+  `,
+    )
     .eq("batch_id", batchId)
-    .order("created_at", { ascending: false });
+    .order("candling_date", { ascending: true });
 
   if (error) {
     throw new Error(`Gagal memuat data peneropongan telur: ${error.message}`);

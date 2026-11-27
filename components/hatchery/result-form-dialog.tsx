@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ interface ResultFormDialogProps {
   onClose: () => void;
   mode: "create" | "edit";
   batchId: number;
+  startDate: string;
+  maxAvailable: number;
   record?: HatcheryResult | null;
 }
 
@@ -29,6 +31,8 @@ export function ResultFormDialog({
   onClose,
   mode,
   batchId,
+  startDate,
+  maxAvailable,
   record,
 }: ResultFormDialogProps) {
   const router = useRouter();
@@ -38,8 +42,50 @@ export function ResultFormDialog({
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [hatchDate, setHatchDate] = useState(record?.hatch_date ?? "");
+
+  const [hatchedCount, setHatchedCount] = useState("0");
+  const [failedCount, setFailedCount] = useState("0");
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (mode === "create") {
+      setHatchDate("");
+      setHatchedCount("0");
+      setFailedCount("0");
+    } else if (record) {
+      setHatchDate(record.hatch_date);
+      setHatchedCount(String(record.hatched_count ?? 0));
+      setFailedCount(String(record.failed_count ?? 0));
+    }
+
+    setErrorMessage("");
+  }, [open, mode, record]);
+
+  const hatchedNumber = Number(hatchedCount || 0);
+  const failedNumber = Number(failedCount || 0);
+
+  const maxHatched = Math.max(0, maxAvailable - failedNumber);
+  const maxFailed = Math.max(0, maxAvailable - hatchedNumber);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const hatched = Number(hatchedCount || 0);
+    const failed = Number(failedCount || 0);
+
+    if (hatched === 0 && failed === 0) {
+      setErrorMessage("Jumlah berhasil atau gagal harus lebih dari 0.");
+      return;
+    }
+
+    if (hatched + failed > maxAvailable) {
+      setErrorMessage(
+        `Jumlah berhasil dan gagal tidak boleh melebihi ${maxAvailable}.`,
+      );
+      return;
+    }
 
     setSaving(true);
     setErrorMessage("");
@@ -113,40 +159,35 @@ export function ResultFormDialog({
               id="hr-date"
               name="hatch_date"
               type="date"
-              defaultValue={record?.hatch_date ?? ""}
+              min={startDate}
+              value={hatchDate}
+              onChange={(event) => setHatchDate(event.target.value)}
               required
             />
           </Field>
 
-          <Field label="Jumlah Menetas" htmlFor="hr-hatched" required>
+          <Field label={`Berhasil* (Maks. ${maxHatched})`} htmlFor="hr-hatched">
             <Input
               id="hr-hatched"
               name="hatched_count"
               type="number"
               min={0}
-              defaultValue={record?.hatched_count ?? ""}
+              max={maxHatched}
+              value={hatchedCount}
+              onChange={(event) => setHatchedCount(event.target.value)}
               required
             />
           </Field>
 
-          <Field label="Jumlah Gagal" htmlFor="hr-failed" required>
+          <Field label={`Gagal* (Maks. ${maxFailed})`} htmlFor="hr-failed">
             <Input
               id="hr-failed"
               name="failed_count"
               type="number"
               min={0}
-              defaultValue={record?.failed_count ?? ""}
-              required
-            />
-          </Field>
-
-          <Field label="Jumlah Survival" htmlFor="hr-survival" required>
-            <Input
-              id="hr-survival"
-              name="survival_count"
-              type="number"
-              min={0}
-              defaultValue={record?.survival_count ?? ""}
+              max={maxFailed}
+              value={failedCount}
+              onChange={(event) => setFailedCount(event.target.value)}
               required
             />
           </Field>

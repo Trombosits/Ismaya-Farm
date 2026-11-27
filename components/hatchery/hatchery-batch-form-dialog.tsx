@@ -24,6 +24,7 @@ import {
 interface SpeciesOption {
   id: number;
   name: string;
+  code?: string;
 }
 
 interface HatcheryBatchFormDialogProps {
@@ -132,23 +133,11 @@ export function HatcheryBatchFormDialog({
         )}
 
         <FormSection title="Informasi Batch">
-          <Field label="Batch Code" htmlFor="hb-code" required>
-            <Input
-              id="hb-code"
-              name="batch_code"
-              defaultValue={batch?.batch_code ?? ""}
-              placeholder="Contoh: HT-2026-006"
-              autoComplete="off"
-              className="font-mono uppercase"
-              required
-            />
-          </Field>
-
           <Field label="Jenis Ternak" htmlFor="hb-species" required>
             <Select
               id="hb-species"
               name="species_id"
-              defaultValue={String(batch?.species_id ?? "")}
+              defaultValue={batch?.species_id?.toString() ?? ""}
               required
             >
               <option value="" disabled>
@@ -181,15 +170,6 @@ export function HatcheryBatchFormDialog({
               min={1}
               defaultValue={batch?.egg_quantity ?? ""}
               required
-            />
-          </Field>
-
-          <Field label="Perkiraan Tanggal Menetas" htmlFor="hb-expected">
-            <Input
-              id="hb-expected"
-              name="expected_hatch_date"
-              type="date"
-              defaultValue={batch?.expected_hatch_date ?? ""}
             />
           </Field>
 

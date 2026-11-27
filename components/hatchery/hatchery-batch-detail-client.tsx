@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, Pencil, Plus, Trash } from "lucide-react";
 
 import { CandlingFormDialog } from "@/components/hatchery/candling-form-dialog";
@@ -28,7 +28,12 @@ import {
   type HatcheryResult,
 } from "@/lib/hatchery";
 import { formatNumber } from "@/lib/format";
-import { formatDate, getSpeciesName } from "@/lib/livestock";
+import { formatDate } from "@/lib/livestock";
+import {
+  deleteCandlingRecord,
+  deleteHatcheryBatch,
+  deleteHatcheryResult,
+} from "@/app/(app)/hatchery/batches/actions";
 
 type SpeciesOption = {
   id: number;
@@ -60,13 +65,154 @@ export function HatcheryBatchDetailClient({
 }: HatcheryBatchDetailClientProps) {
   const router = useRouter();
 
+  function getMaxFertile(record?: HatcheryCandlingRecord) {
+    const previousCandlings = candlingRecords
+      .filter((item) => {
+        if (!record) return true;
+
+        return (
+          item.candling_date < record.candling_date ||
+          (item.candling_date === record.candling_date && item.id < record.id)
+        );
+      })
+      .sort((a, b) => {
+        const dateComparison = b.candling_date.localeCompare(a.candling_date);
+
+        if (dateComparison !== 0) return dateComparison;
+
+        return b.id - a.id;
+      });
+
+    const previousCandling = previousCandlings[0];
+
+    const totalHatched = results.reduce(
+      (total, result) => total + result.hatched_count,
+      0,
+    );
+
+    const availableEggs = previousCandling
+      ? previousCandling.fertile_count - previousCandling.infertile_count
+      : (batch?.egg_quantity ?? 0);
+
+    return Math.max(0, availableEggs - totalHatched);
+  }
+
+  function getMaxResultAvailable(record?: HatcheryResult) {
+    const latestCandling = [...candlingRecords].sort((a, b) => {
+      const dateComparison = b.candling_date.localeCompare(a.candling_date);
+
+      if (dateComparison !== 0) return dateComparison;
+
+      return b.id - a.id;
+    })[0];
+
+    if (!latestCandling) return 0;
+
+    const previousResults = results.filter((item) => item.id !== record?.id);
+
+    const alreadyProcessed = previousResults.reduce(
+      (total, item) => total + item.hatched_count + item.failed_count,
+      0,
+    );
+
+    return Math.max(0, latestCandling.fertile_count - alreadyProcessed);
+  }
+
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+  const [deleteBatchError, setDeleteBatchError] = useState("");
   const [candlingForm, setCandlingForm] = useState<CandlingFormState>(null);
   const [candlingDelete, setCandlingDelete] =
     useState<HatcheryCandlingRecord | null>(null);
+  const [candlingDeleteError, setCandlingDeleteError] = useState("");
+  const [isDeletingCandling, setIsDeletingCandling] = useState(false);
   const [resultForm, setResultForm] = useState<ResultFormState>(null);
   const [resultDelete, setResultDelete] = useState<HatcheryResult | null>(null);
+  const [resultDeleteError, setResultDeleteError] = useState("");
+  const [isDeletingResult, setIsDeletingResult] = useState(false);
+
+  async function handleDeleteCandling() {
+    if (!batch || !candlingDelete) return;
+
+    setIsDeletingCandling(true);
+    setCandlingDeleteError("");
+
+    try {
+      const result = await deleteCandlingRecord(candlingDelete.id, batch.id);
+
+      if (!result.success) {
+        setCandlingDeleteError(result.message);
+        return;
+      }
+
+      setCandlingDelete(null);
+      router.refresh();
+    } catch (error) {
+      setCandlingDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Gagal menghapus data candling.",
+      );
+    } finally {
+      setIsDeletingCandling(false);
+    }
+  }
+
+  async function handleDeleteResult() {
+    if (!batch || !resultDelete || isDeletingResult) return;
+
+    setIsDeletingResult(true);
+    setResultDeleteError("");
+
+    try {
+      const response = await deleteHatcheryResult(resultDelete.id, batch.id);
+
+      if (!response.success) {
+        setResultDeleteError(response.message);
+        return;
+      }
+
+      setResultDelete(null);
+      router.refresh();
+    } catch (error) {
+      setResultDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Gagal menghapus hasil penetasan.",
+      );
+    } finally {
+      setIsDeletingResult(false);
+    }
+  }
+
+  async function handleDeleteBatch() {
+    if (!batch || isDeletingBatch) return;
+
+    setIsDeletingBatch(true);
+    setDeleteBatchError("");
+
+    try {
+      const result = await deleteHatcheryBatch(batch.id);
+
+      if (!result.success) {
+        setDeleteBatchError(result.message);
+        return;
+      }
+
+      setDeleteOpen(false);
+      router.push("/hatchery/batches");
+      router.refresh();
+    } catch (error) {
+      setDeleteBatchError(
+        error instanceof Error
+          ? error.message
+          : "Gagal menghapus batch penetasan.",
+      );
+    } finally {
+      setIsDeletingBatch(false);
+    }
+  }
 
   if (!batch) {
     return (
@@ -97,7 +243,7 @@ export function HatcheryBatchDetailClient({
 
       <PageHeader
         title={batch.batch_code}
-        description={`${getSpeciesName(batch.species_id)} · mulai ${formatDate(
+        description={`${batch.species_name} · mulai ${formatDate(
           batch.start_date,
         )}`}
         badge={
@@ -137,7 +283,7 @@ export function HatcheryBatchDetailClient({
               </span>
             </DescriptionItem>
             <DescriptionItem label="Jenis Ternak">
-              {getSpeciesName(batch.species_id)}
+              {batch.species_name}
             </DescriptionItem>
             <DescriptionItem label="Status">
               <Badge variant={HATCHERY_STATUS_BADGE[batch.status]}>
@@ -149,9 +295,6 @@ export function HatcheryBatchDetailClient({
             </DescriptionItem>
             <DescriptionItem label="Jumlah Telur">
               {formatNumber(batch.egg_quantity)}
-            </DescriptionItem>
-            <DescriptionItem label="Perkiraan Menetas">
-              {formatDate(batch.expected_hatch_date)}
             </DescriptionItem>
           </DescriptionList>
           <div className="flex flex-col gap-1">
@@ -191,6 +334,7 @@ export function HatcheryBatchDetailClient({
                   <TH className="text-right">Fertile</TH>
                   <TH className="text-right">Infertile</TH>
                   <TH className="text-right">Embrio Mati</TH>
+                  <TH>Catatan</TH>
                   <TH className="w-14 text-right">Aksi</TH>
                 </tr>
               </THead>
@@ -209,6 +353,9 @@ export function HatcheryBatchDetailClient({
                     </TD>
                     <TD className="text-right">
                       {formatNumber(record.dead_embryo_count)}
+                    </TD>
+                    <TD className="max-w-48 truncate text-xs text-muted">
+                      {record.notes || "—"}
                     </TD>
                     <TD>
                       <RowActions
@@ -249,7 +396,6 @@ export function HatcheryBatchDetailClient({
                   <TH>Tanggal Menetas</TH>
                   <TH className="text-right">Menetas</TH>
                   <TH className="text-right">Gagal</TH>
-                  <TH className="text-right">Survival</TH>
                   <TH>Catatan</TH>
                   <TH className="w-14 text-right">Aksi</TH>
                 </tr>
@@ -265,9 +411,6 @@ export function HatcheryBatchDetailClient({
                     </TD>
                     <TD className="text-right">
                       {formatNumber(record.failed_count)}
-                    </TD>
-                    <TD className="text-right">
-                      {formatNumber(record.survival_count)}
                     </TD>
                     <TD className="max-w-48 truncate text-xs text-muted">
                       {record.notes || "—"}
@@ -302,10 +445,18 @@ export function HatcheryBatchDetailClient({
           open
           destructive
           title="Hapus Batch Penetasan?"
-          description={`Apakah Anda yakin ingin menghapus batch "${batch.batch_code}"?`}
-          confirmLabel="Hapus"
-          onClose={() => setDeleteOpen(false)}
-          onConfirm={() => setDeleteOpen(false)}
+          description={
+            deleteBatchError ||
+            `Apakah Anda yakin ingin menghapus batch "${batch.batch_code}"?`
+          }
+          confirmLabel={isDeletingBatch ? "Menghapus..." : "Hapus"}
+          onClose={() => {
+            if (!isDeletingBatch) {
+              setDeleteOpen(false);
+              setDeleteBatchError("");
+            }
+          }}
+          onConfirm={handleDeleteBatch}
         />
       ) : null}
 
@@ -314,8 +465,16 @@ export function HatcheryBatchDetailClient({
           open
           mode={candlingForm.mode}
           batchId={String(batch.id)}
+          maxFertile={getMaxFertile(
+            candlingForm.mode === "edit" ? candlingForm.record : undefined,
+          )}
+          startDate={batch.start_date}
+          eggQuantity={batch.egg_quantity}
           record={candlingForm.mode === "edit" ? candlingForm.record : null}
-          onClose={() => setCandlingForm(null)}
+          onClose={() => {
+            setCandlingForm(null);
+            router.refresh();
+          }}
         />
       ) : null}
 
@@ -325,9 +484,14 @@ export function HatcheryBatchDetailClient({
           destructive
           title="Hapus Candling?"
           description="Apakah Anda yakin ingin menghapus data candling ini?"
-          confirmLabel="Hapus"
-          onClose={() => setCandlingDelete(null)}
-          onConfirm={() => setCandlingDelete(null)}
+          confirmLabel={isDeletingCandling ? "Menghapus..." : "Hapus"}
+          onClose={() => {
+            if (!isDeletingCandling) {
+              setCandlingDelete(null);
+              setCandlingDeleteError("");
+            }
+          }}
+          onConfirm={handleDeleteCandling}
         />
       ) : null}
 
@@ -336,8 +500,15 @@ export function HatcheryBatchDetailClient({
           open
           mode={resultForm.mode}
           batchId={batch.id}
+          startDate={batch.start_date}
+          maxAvailable={getMaxResultAvailable(
+            resultForm.mode === "edit" ? resultForm.record : undefined,
+          )}
           record={resultForm.mode === "edit" ? resultForm.record : null}
-          onClose={() => setResultForm(null)}
+          onClose={() => {
+            setResultForm(null);
+            router.refresh();
+          }}
         />
       ) : null}
 
@@ -346,10 +517,18 @@ export function HatcheryBatchDetailClient({
           open
           destructive
           title="Hapus Hasil Penetasan?"
-          description="Apakah Anda yakin ingin menghapus hasil penetasan ini?"
-          confirmLabel="Hapus"
-          onClose={() => setResultDelete(null)}
-          onConfirm={() => setResultDelete(null)}
+          description={
+            resultDeleteError ||
+            "Apakah Anda yakin ingin menghapus hasil penetasan ini?"
+          }
+          confirmLabel={isDeletingResult ? "Menghapus..." : "Hapus"}
+          onClose={() => {
+            if (!isDeletingResult) {
+              setResultDelete(null);
+              setResultDeleteError("");
+            }
+          }}
+          onConfirm={handleDeleteResult}
         />
       ) : null}
     </div>
