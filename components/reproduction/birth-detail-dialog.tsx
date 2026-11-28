@@ -53,11 +53,23 @@ export function BirthDetailDialog({
       <div className="flex flex-col gap-5">
         <DescriptionList columns={2}>
           <DescriptionItem label="Induk Betina">
-            {mother?.tag_code ?? "Data tidak tersedia"}
+            {mother ? (
+              <span>
+                {mother.tag_code} - {mother.breed_name}
+              </span>
+            ) : (
+              "Data tidak tersedia"
+            )}
           </DescriptionItem>
 
           <DescriptionItem label="Induk Jantan">
-            {father?.tag_code ?? "Tidak diketahui"}
+            {father ? (
+              <span>
+                {father.tag_code} - {father.breed_name}
+              </span>
+            ) : (
+              "Tidak diketahui"
+            )}
           </DescriptionItem>
 
           <DescriptionItem label="Tanggal Lahir">
