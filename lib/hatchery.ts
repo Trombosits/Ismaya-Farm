@@ -32,15 +32,15 @@ export interface HatcheryBatch {
   id: number;
   batch_code: string;
   species_id: number;
+  species_name: string;
+  species_code: string;
   start_date: string;
   egg_quantity: number;
-  expected_hatch_date: string | null;
   status: HatcheryBatchStatus;
   notes: string | null;
   created_at: string;
   updated_at: string;
 }
-
 // =====================================================
 // HATCHERY STATUS
 // =====================================================
@@ -85,7 +85,6 @@ export interface HatcheryResult {
   hatch_date: string;
   hatched_count: number;
   failed_count: number;
-  survival_count: number;
   notes: string | null;
 }
 

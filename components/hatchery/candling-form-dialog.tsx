@@ -21,21 +21,48 @@ interface CandlingFormDialogProps {
   onClose: () => void;
   mode: "create" | "edit";
   batchId: string;
+  maxFertile: number;
+  startDate: string;
   record?: HatcheryCandlingRecord | null;
+  eggQuantity: number;
 }
 
 export function CandlingFormDialog({
   open,
-  onClose,
   mode,
   batchId,
+  maxFertile,
+  startDate,
+  eggQuantity,
   record,
+  onClose,
 }: CandlingFormDialogProps) {
   const isEdit = mode === "edit";
   const formId = "candling-form";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [candlingDate, setCandlingDate] = useState(record?.candling_date ?? "");
+
+  const [fertileCount, setFertileCount] = useState(
+    String(record?.fertile_count ?? ""),
+  );
+
+  const ageDays =
+    candlingDate && candlingDate >= startDate
+      ? Math.floor(
+          (new Date(`${candlingDate}T00:00:00`).getTime() -
+            new Date(`${startDate}T00:00:00`).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
+      : "";
+
+  const fertileNumber = Number(fertileCount || 0);
+
+  const infertileCount =
+    fertileCount.trim() === ""
+      ? ""
+      : String(Math.max(0, maxFertile - fertileNumber));
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,52 +126,57 @@ export function CandlingFormDialog({
               id="hc-date"
               name="candling_date"
               type="date"
-              defaultValue={record?.candling_date ?? ""}
+              min={startDate}
+              value={candlingDate}
+              onChange={(event) => setCandlingDate(event.target.value)}
               required
             />
           </Field>
 
-          <Field label="Umur Hari" htmlFor="hc-age" required>
+          <Field label="Umur Hari" htmlFor="hc-age">
             <Input
               id="hc-age"
               name="age_days"
               type="number"
-              min={0}
-              defaultValue={record?.age_days ?? ""}
+              value={String(ageDays)}
+              placeholder="Terisi otomatis"
+              readOnly
               required
             />
           </Field>
 
-          <Field label="Fertile" htmlFor="hc-fertile" required>
+          <Field label={`Fertile* (Maks. ${maxFertile})`} htmlFor="hc-fertile">
             <Input
               id="hc-fertile"
               name="fertile_count"
               type="number"
               min={0}
-              defaultValue={record?.fertile_count ?? ""}
+              max={maxFertile}
+              value={fertileCount}
+              onChange={(event) => setFertileCount(event.target.value)}
               required
             />
           </Field>
 
-          <Field label="Infertile" htmlFor="hc-infertile" required>
+          <Field label="Infertile" htmlFor="hc-infertile">
             <Input
               id="hc-infertile"
               name="infertile_count"
               type="number"
-              min={0}
-              defaultValue={record?.infertile_count ?? ""}
+              value={infertileCount}
+              placeholder="Terisi otomatis"
+              readOnly
               required
             />
           </Field>
 
-          <Field label="Embrio Mati" htmlFor="hc-dead" required>
+          <Field label="Embrio Mati" htmlFor="hc-dead">
             <Input
               id="hc-dead"
               name="dead_embryo_count"
               type="number"
               min={0}
               defaultValue={record?.dead_embryo_count ?? ""}
-              required
             />
           </Field>
         </FormSection>
