@@ -1,5 +1,3 @@
-//
-
 import { HatcheryBatchDetailClient } from "@/components/hatchery/hatchery-batch-detail-client";
 import {
   getCandlingByBatch,
@@ -46,10 +44,12 @@ export default async function HatcheryBatchDetailPage({
     getSpeciesList(),
   ]);
 
-  const speciesOptions = speciesList.map((species) => ({
-    id: Number(species.id),
-    name: species.name,
-  }));
+  const speciesOptions = speciesList
+    .filter((species) => species.reproduction_types === "LAY_EGG")
+    .map((species) => ({
+      id: Number(species.id),
+      name: species.name,
+    }));
 
   return (
     <HatcheryBatchDetailClient

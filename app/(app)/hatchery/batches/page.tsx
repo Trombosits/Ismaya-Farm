@@ -122,21 +122,13 @@ export default function HatcheryBatchesPage() {
   const safePage = Math.min(page, pageCount);
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const searchEmpty = isFiltered && filtered.length === 0;
-
   const incubating = filtered.filter((batch) => batch.status === "incubating");
-  const nearestHatch = incubating.reduce<string | null>((min, batch) => {
-    const date = batch.expected_hatch_date;
-
-    if (!date) return min;
-
-    return min === null || date < min ? date : min;
-  }, null);
 
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Batch Penetasan"
-        description="Daftar batch penetasan telur beserta status dan perkiraan menetasnya."
+        description="Daftar batch penetasan telur beserta statusnya."
         actions={
           <Button onClick={() => setAddOpen(true)} className="w-full sm:w-auto">
             <Plus aria-hidden className="size-4" />
@@ -151,10 +143,6 @@ export default function HatcheryBatchesPage() {
           label="Batch Berjalan"
           value={incubating.length}
           accent="info"
-        />
-        <SummaryCard
-          label="Perkiraan Menetas Terdekat"
-          value={nearestHatch ? formatDate(nearestHatch) : "—"}
         />
       </SummaryCards>
 
@@ -208,7 +196,7 @@ export default function HatcheryBatchesPage() {
       <TableStatePanel
         state={viewState}
         onRetry={() => setViewState("data")}
-        columns={7}
+        columns={6}
         searchEmpty={searchEmpty}
         emptyTitle="Belum ada batch penetasan"
         emptyDescription="Belum ada data batch penetasan yang tersedia."
@@ -235,7 +223,6 @@ export default function HatcheryBatchesPage() {
               <TH>Jenis Ternak</TH>
               <TH>Tanggal Mulai</TH>
               <TH className="text-right">Jumlah Telur</TH>
-              <TH className="hidden md:table-cell">Perkiraan Menetas</TH>
               <TH>Status</TH>
               <TH className="w-14 text-right">Aksi</TH>
             </tr>
@@ -258,11 +245,6 @@ export default function HatcheryBatchesPage() {
                 </TD>
                 <TD className="text-right font-medium">
                   {formatNumber(batch.egg_quantity)}
-                </TD>
-                <TD className="hidden whitespace-nowrap text-xs text-muted md:table-cell">
-                  {batch.expected_hatch_date
-                    ? formatDate(batch.expected_hatch_date)
-                    : "—"}
                 </TD>
                 <TD>
                   <Badge variant={HATCHERY_STATUS_BADGE[batch.status]}>
