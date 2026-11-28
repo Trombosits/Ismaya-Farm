@@ -29,7 +29,7 @@ export interface LivestockBreed {
   updated_at: string;
 }
 
-export type LivestockSex = "male" | "female";
+export type LivestockSex = "male" | "female" | "unknown";
 export type LivestockStatus = "active" | "sold" | "dead" | "transferred";
 export type AcquisitionType = "born" | "purchased" | "gift";
 
@@ -64,6 +64,7 @@ export interface LivestockHealthRecord {
 export const SEX_LABEL: Record<LivestockSex, string> = {
   male: "Jantan",
   female: "Betina",
+  unknown: "Belum diketahui",
 };
 
 export const STATUS_LABEL: Record<LivestockStatus, string> = {
@@ -118,9 +119,7 @@ export function formatDate(iso: string | null): string {
   }).format(date);
 }
 
-export function formatAcquisitionType(
-  type: AcquisitionType | null,
-): string {
+export function formatAcquisitionType(type: AcquisitionType | null): string {
   if (!type) return "—";
   return ACQUISITION_LABEL[type] ?? "—";
 }
@@ -161,7 +160,9 @@ export function formatTagCode(prefix: string, value: number): string {
 }
 
 /** Nomor urut dari sebuah Tag Code (`KMB-006` → 6); null bila tidak ada. */
-export function parseTagNumber(tagCode: string | null | undefined): number | null {
+export function parseTagNumber(
+  tagCode: string | null | undefined,
+): number | null {
   const match = /-(\d+)\s*$/.exec((tagCode ?? "").trim());
   if (!match) return null;
 
@@ -895,9 +896,7 @@ export function getBreedsBySpecies(
   );
 }
 
-export function getLivestockById(
-  id: string | number,
-): Livestock | undefined {
+export function getLivestockById(id: string | number): Livestock | undefined {
   return livestockList.find((animal) => String(animal.id) === String(id));
 }
 
